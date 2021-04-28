@@ -33,7 +33,7 @@ group :development, :test do
   gem 'byebug', platforms: [:mri, :mingw, :x64_mingw]
   gem 'factory_bot_rails'
   gem 'rspec-rails'
-  gem 'ruby-debug-ide'
+  gem 'ruby-debug-ide', require: false  # https://stackoverflow.com/questions/23686384/debase-loaderror-when-debugging-in-rubymine-with-ruby-2-0-0-on-os-x-mavericks
   gem 'shoulda-matchers'
   gem 'rubocop', require: false
 end
