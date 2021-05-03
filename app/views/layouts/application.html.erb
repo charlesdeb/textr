@@ -11,6 +11,24 @@
   </head>
 
   <body>
-    <%= yield %>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light container">
+      <%= link_to "Textr", root_path, class: "navbar-brand" %>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+        <div class="navbar-nav">
+        </div>
+      </div>
+    </nav>
+    <div id="main-container" class="container">
+      <% flash.each do |type, msg| %>
+        <div class="alert alert-<%= type == 'notice' ? 'success' : type %>">
+          <%= msg %>
+        </div>
+      <% end %>
+      <%= yield %>
+    </div>
+
   </body>
 </html>
