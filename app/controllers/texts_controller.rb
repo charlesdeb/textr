@@ -3,5 +3,6 @@ class TextsController < ApplicationController
   end
 
   def index
+    @texts = Text.all
   end
 end
