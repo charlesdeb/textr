@@ -3,6 +3,7 @@ class TextsController < ApplicationController
   end
 
   def index
+    @languages = Language.all
     @texts = Text.all
   end
 end
