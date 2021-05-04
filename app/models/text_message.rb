@@ -1,5 +1,5 @@
 # frozen_string_literal: true
 
-class Text < ApplicationRecord
+class TextMessage < ApplicationRecord
   belongs_to :language
 end

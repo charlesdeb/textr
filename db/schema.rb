@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_05_04_205803) do
+ActiveRecord::Schema.define(version: 2021_05_04_221931) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -22,13 +22,13 @@ ActiveRecord::Schema.define(version: 2021_05_04_205803) do
     t.index ["language"], name: "index_languages_on_language", unique: true
   end
 
-  create_table "texts", force: :cascade do |t|
+  create_table "text_messages", force: :cascade do |t|
     t.text "text"
     t.bigint "language_id", null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.index ["language_id"], name: "index_texts_on_language_id"
+    t.index ["language_id"], name: "index_text_messages_on_language_id"
   end
 
-  add_foreign_key "texts", "languages"
+  add_foreign_key "text_messages", "languages"
 end
