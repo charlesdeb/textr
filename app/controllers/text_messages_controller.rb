@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
+# controller for TextMessages
 class TextMessagesController < ApplicationController
-  before_action :set_languages # , only: %i[show edit update destroy generate reanalyse]
+  before_action :set_languages, only: %i[index]
 
   def create
     @text_message = TextMessage.new(text_params)

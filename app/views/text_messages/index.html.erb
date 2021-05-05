@@ -1,18 +1,17 @@
 <div class='row'>
   <div class='col-4'>
     <h2>Enter Text</h2>
-      <%= form_with(model: @text_message, url: text_messages_create_path, local: true) do |f| %>
-        <div class='form-group'>
-          <%= f.label :text %>
-          <%= f.text_area :text, class: 'form-control', required: true %>
-        </div>
-        <div class='form-group'>
-          <%= f.label :language %>
-          <%= f.select :language_id, options_from_collection_for_select(@languages, 'id','language') %>
-        </div>
-        <%= f.submit "Send", class: 'btn btn-primary' %>
-
-      <% end %>
+    <%= form_with(model: @text_message, url: text_messages_create_path, local: true) do |f| %>
+      <div class='form-group'>
+        <%= f.label :text %>
+        <%= f.text_area :text, class: 'form-control', required: true %>
+      </div>
+      <div class='form-group'>
+        <%= f.label :language %>
+        <%= f.select :language_id, options_from_collection_for_select(@languages, 'id','language') %>
+      </div>
+      <%= f.submit "Send", class: 'btn btn-primary float-right' %>
+    <% end %>
   </div>
   <div class='col'>
     <h2>Suggestions</h2>

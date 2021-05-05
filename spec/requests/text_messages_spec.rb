@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe 'TextMessages', type: :request do # rubocop:disable Metrics/BlockLength
-  describe 'POST /create' do
+  describe 'POST /create' do # rubocop:disable Metrics/BlockLength
     let(:language) { create(:language, language: 'Klingon') }
     let(:valid_attributes) do
       { text: 'A new text message', language_id: language.id }
@@ -23,6 +23,20 @@ RSpec.describe 'TextMessages', type: :request do # rubocop:disable Metrics/Block
       expect do
         post text_messages_create_path, params: { text_message: valid_attributes }
       end.to change(TextMessage, :count).by(1)
+    end
+
+    it 'adds chunk analysis to the database' do
+      pending 'add Chunk model'
+      expect do
+        post text_messages_create_path, params: { text_message: valid_attributes }
+      end.to change(Chunk, :count).by_at_least(1)
+    end
+
+    it 'adds tokens to the database' do
+      pending 'add Token model'
+      expect do
+        post text_messages_create_path, params: { text_message: valid_attributes }
+      end.to change(Token, :count).by_at_least(1)
     end
   end
 
