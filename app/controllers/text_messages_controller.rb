@@ -6,6 +6,7 @@ class TextMessagesController < ApplicationController
 
   def create
     @text_message = TextMessage.new(text_params)
+    @text_message.analyse
 
     if @text_message.save
       respond_to do |format|

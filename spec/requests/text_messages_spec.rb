@@ -26,14 +26,12 @@ RSpec.describe 'TextMessages', type: :request do # rubocop:disable Metrics/Block
     end
 
     it 'adds chunk analysis to the database' do
-      pending 'add Chunk model'
       expect do
         post text_messages_create_path, params: { text_message: valid_attributes }
       end.to change(Chunk, :count).by_at_least(1)
     end
 
     it 'adds tokens to the database' do
-      pending 'add Token model'
       expect do
         post text_messages_create_path, params: { text_message: valid_attributes }
       end.to change(Token, :count).by_at_least(1)
