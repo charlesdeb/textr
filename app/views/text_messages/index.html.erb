@@ -24,6 +24,8 @@
       @text_messages.each do |text_message| %>
       <li><%= text_message.text %></li>
     <% end %>
+    <%= link_to "Reset all...", text_messages_reset_path, method: :delete, data: { confirm: "Are you sure?" }, class: 'btn btn-danger'%>
+    <% %>
   <% end %>
 </div>
 <div class='col'>

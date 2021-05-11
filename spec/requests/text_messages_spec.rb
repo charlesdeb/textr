@@ -3,8 +3,15 @@
 require 'rails_helper'
 
 RSpec.describe 'TextMessages', type: :request do # rubocop:disable Metrics/BlockLength
+  let(:language) { create(:language, language: 'Klingon') }
+
+  def create_dummy_data
+    # create some historic text messages
+    create(:text_message, text: 'The rain in Spain falls mainly on the plain', language: language)
+    create(:text_message, text: 'Baby got blue eyes.', language: language)
+  end
+
   describe 'POST /create' do # rubocop:disable Metrics/BlockLength
-    let(:language) { create(:language, language: 'Klingon') }
     let(:valid_attributes) do
       { text: 'A new text message', language_id: language.id }
     end
@@ -39,13 +46,8 @@ RSpec.describe 'TextMessages', type: :request do # rubocop:disable Metrics/Block
   end
 
   describe 'GET /index' do
-    let(:klingon) { create(:language, language: 'Klingon') }
-
     before(:each) do
-      # create some historic text messages
-      create(:text_message, text: 'The rain in Spain falls mainly on the plain', language: klingon)
-      create(:text_message, text: 'Baby got blue eyes.', language: klingon)
-
+      create_dummy_data
       get '/text_messages/index'
     end
 
@@ -59,8 +61,24 @@ RSpec.describe 'TextMessages', type: :request do # rubocop:disable Metrics/Block
     end
 
     it 'shows language drop-down' do
-      # assert_select('select option', { text: 'Klingon' })
-      assert_select("select option:contains(#{klingon.language})")
+      assert_select('select option', { text: language.language })
+      # assert_select("select option:contains(aaa#{language.language})")
+    end
+  end
+
+  describe 'DELETE /reset' do
+    before(:each) do
+      create_dummy_data
+      delete '/text_messages/reset'
+    end
+
+    it 'deletes all tokens and text_messages' do
+      expect(Token.count).to eq 0
+      expect(TextMessage.count).to eq 0
+    end
+
+    it 'shows confirmation message' do
+      expect(flash[:notice]).to eq('All learning data deleted.')
     end
   end
 end

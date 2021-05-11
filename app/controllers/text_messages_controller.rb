@@ -22,6 +22,17 @@ class TextMessagesController < ApplicationController
     @text_messages = TextMessage.all
   end
 
+  def reset
+    if TextMessage.delete_all && Token.delete_all
+
+      respond_to do |format|
+        format.html do
+          redirect_to text_messages_index_url, notice: 'All learning data deleted.'
+        end
+      end
+    end
+  end
+
   private
 
   # Use callbacks to share common setup or constraints between actions.

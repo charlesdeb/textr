@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'text_messages/index.html.erb', type: :view do
+RSpec.describe 'text_messages/index.html.erb', type: :view do # rubocop:disable Metrics/BlockLength
   context 'boiler plate [move to a feature spec]' do
     it 'has show analysis checkbox'
     it 'has language selector'
@@ -28,6 +28,10 @@ RSpec.describe 'text_messages/index.html.erb', type: :view do
 
     it 'shows language selector' do
       expect(rendered).to match /Klingon/
+    end
+
+    it 'shows a reset button' do
+      assert_select('a:contains("Reset all...")')
     end
   end
 end
