@@ -5,6 +5,7 @@ class TextMessagesController < ApplicationController
   before_action :set_languages, only: %i[index]
 
   def create
+    p text_params
     @text_message = TextMessage.new(text_params)
     @text_message.analyse
 
@@ -33,6 +34,19 @@ class TextMessagesController < ApplicationController
     end
   end
 
+  def suggestions
+    @current_message = suggestion_params['current_message']
+    # @suggestions = Suggester.new(suggestion_params)
+
+    respond_to do |format|
+      format.js { render :index, layout: false }
+      format.html do
+        # suggestions is an ajax only action - just show the index again
+        redirect_to text_messages_index_url
+      end
+    end
+  end
+
   private
 
   # Use callbacks to share common setup or constraints between actions.
@@ -46,7 +60,7 @@ class TextMessagesController < ApplicationController
   end
 
   # Only allow a list of trusted parameters through.
-  # def generate_params
-  #   params.permit(:chunk_size, :output_size, :id, :strategy)
-  # end
+  def suggestion_params
+    params.permit(:current_message, :language_id)
+  end
 end
