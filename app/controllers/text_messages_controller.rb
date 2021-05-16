@@ -5,7 +5,6 @@ class TextMessagesController < ApplicationController
   before_action :set_languages, only: %i[index]
 
   def create
-    p text_params
     @text_message = TextMessage.new(text_params)
     @text_message.analyse
 

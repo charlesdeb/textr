@@ -169,7 +169,7 @@ RSpec.describe ChunkAnalyser, type: :model do # rubocop:disable Metrics/BlockLen
     context 'existing hash counts' do
       let(:chunk_size) { 2 }
 
-      let(:prior_chunk) do
+      let!(:prior_chunk) do
         create(:chunk, {
                  language: language, token_ids: [1, 2], count: 1, size: chunk_size
                })
@@ -178,15 +178,10 @@ RSpec.describe ChunkAnalyser, type: :model do # rubocop:disable Metrics/BlockLen
       let(:latest_chunks_hash) { { [1, 2] => 3 } }
 
       it 'combines current hash counts with past counts' do
-        p 'prior_chunk:'
-        p prior_chunk
         analyser.upsert_chunks_hash(latest_chunks_hash, chunk_size)
 
         expect(Chunk.all.count).to eq(1)
         chunk = Chunk.first
-        puts 'retrieved chunk after upsert'
-        p chunk
-        p chunk.token_ids
         expect(chunk.count).to eq(4)
       end
     end
