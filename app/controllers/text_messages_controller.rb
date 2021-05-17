@@ -33,9 +33,12 @@ class TextMessagesController < ApplicationController
     end
   end
 
-  def suggestions
-    @current_message = suggestion_params['current_message']
-    # @suggestions = Suggester.new(suggestion_params)
+  def suggest
+    suggestions = Suggester.new(suggest_params).suggest
+
+    @candidates = suggestions[:candidates]
+
+    @analysis = suggestions[:analysis] if suggest_params[:show_analysis] == 'true'
 
     respond_to do |format|
       format.js { render :index, layout: false }
@@ -59,7 +62,7 @@ class TextMessagesController < ApplicationController
   end
 
   # Only allow a list of trusted parameters through.
-  def suggestion_params
-    params.permit(:current_message, :language_id)
+  def suggest_params
+    params.permit(:current_message, :language_id, :show_analysis)
   end
 end

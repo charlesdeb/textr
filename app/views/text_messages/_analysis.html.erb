@@ -1,0 +1,20 @@
+<% if @analysis %>
+  <% if @analysis.empty?%>
+    <p>Sorry, there were no analysis results</p>
+  <% else %>
+    <% @analysis.each do |analysis| %>
+      <div class='analysis'>
+      <h4>Chunk size <%= analysis[:chunk_size]%></h4>
+
+        <ul>
+        <% analysis[:candidate_token_texts].each do |candidate_token_text| %>
+
+          <li><%= "#{analysis[:chunk]} #{candidate_token_text[:token_text]} (#{number_to_percentage(candidate_token_text[:probability] * 100)})" %></li>
+          
+        <% end %>  
+        </ul>
+      
+      </div>
+    <% end %>
+  <% end %>
+<% end %>

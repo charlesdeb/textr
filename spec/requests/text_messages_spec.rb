@@ -81,4 +81,105 @@ RSpec.describe 'TextMessages', type: :request do # rubocop:disable Metrics/Block
       expect(flash[:notice]).to eq('All learning data deleted.')
     end
   end
+
+  describe 'GET /suggest' do # rubocop:disable Metrics/BlockLength
+    context 'ajax request' do # rubocop:disable Metrics/BlockLength
+      let(:params) do
+        { text_message: 'the', language_id: language.id.to_s, show_analysis: 'false' }
+      end
+
+      let(:suggester_suggestions) do
+        { candidates: [
+          { token_text: 'Groovy', probability: 0.75, chunk_size: 6 },
+          { token_text: 'Monkey', probability: 0.15, chunk_size: 4 }
+        ] }
+      end
+
+      let(:suggester) { double(Suggester, suggest: suggester_suggestions) }
+
+      it 'returns http success' do
+        get text_messages_suggest_path,
+            params: params, xhr: true
+
+        expect(response).to have_http_status(:success)
+        expect(response.media_type).to eq('text/javascript')
+      end
+
+      it 'handles no candidates' do
+        suggester_suggestions = { candidates: [] }
+        suggester = double(Suggester, suggest: suggester_suggestions)
+        allow(Suggester).to receive(:new).and_return(suggester)
+
+        get text_messages_suggest_path,
+            params: params, xhr: true
+
+        expect(@response.body).to match(/Sorry, no suggestions for that input/)
+      end
+
+      it 'shows the candidates' do
+        allow(Suggester).to receive(:new).and_return(suggester)
+        get text_messages_suggest_path,
+            params: params, xhr: true
+
+        expect(@response.body).to match(/Groovy/)
+        expect(@response.body).to match(/Monkey/)
+        expect(@response.body).to match(/75%/)
+        expect(@response.body).to match(/15%/)
+        # assert_select 'oo', @response.body
+      end
+
+      it 'shows analysis when requested but there is none' do
+        params[:show_analysis] = 'true'
+        suggester_suggestions[:analysis] = []
+        suggester = double(Suggester, suggest: suggester_suggestions)
+        allow(Suggester).to receive(:new).and_return(suggester)
+
+        get text_messages_suggest_path,
+            params: params, xhr: true
+
+        expect(@response.body).to match(/Sorry, there were no analysis results/)
+      end
+
+      it 'shows analysis when requested and there is some' do # rubocop:disable Metrics/BlockLength
+        params[:show_analysis] = 'true'
+        suggester_suggestions[:analysis] = [
+          { chunk_size: 6,
+            chunk: 'The cat in ', candidate_token_texts: [
+              { token_text: 'the', probability: 0.75 },
+              { token_text: 'a', probability: 0.15 },
+              { token_text: 'this', probability: 0.05 }
+            ] },
+          { chunk_size: 5,
+            chunk: ' cat in ', candidate_token_texts: [
+              { token_text: 'the', probability: 0.75 },
+              { token_text: 'a', probability: 0.15 },
+              { token_text: 'this', probability: 0.05 }
+            ] },
+          { chunk_size: 4,
+            chunk: 'cat in ', candidate_token_texts: [
+              { token_text: 'the', probability: 0.75 },
+              { token_text: 'a', probability: 0.15 },
+              { token_text: 'this', probability: 0.05 }
+            ] }
+        ]
+
+        suggester = double(Suggester, suggest: suggester_suggestions)
+        allow(Suggester).to receive(:new).and_return(suggester)
+
+        get text_messages_suggest_path,
+            params: params, xhr: true
+
+        expect(@response.body).to match(/The cat in /)
+      end
+
+      it 'does not show analysis when not required' do
+        params[:show_analysis] = 'false'
+
+        get text_messages_suggest_path,
+            params: params, xhr: true
+
+        expect(@response.body).to match(/html\(""\)/)
+      end
+    end
+  end
 end
