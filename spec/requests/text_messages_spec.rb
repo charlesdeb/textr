@@ -98,6 +98,8 @@ RSpec.describe 'TextMessages', type: :request do # rubocop:disable Metrics/Block
       let(:suggester) { double(Suggester, suggest: suggester_suggestions) }
 
       it 'returns http success' do
+        allow(Suggester).to receive(:new).and_return(suggester)
+
         get text_messages_suggest_path,
             params: params, xhr: true
 
@@ -173,6 +175,7 @@ RSpec.describe 'TextMessages', type: :request do # rubocop:disable Metrics/Block
       end
 
       it 'does not show analysis when not required' do
+        allow(Suggester).to receive(:new).and_return(suggester)
         params[:show_analysis] = 'false'
 
         get text_messages_suggest_path,
