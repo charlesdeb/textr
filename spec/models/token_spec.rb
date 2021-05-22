@@ -66,9 +66,15 @@ RSpec.describe Token, type: :model do # rubocop:disable Metrics/BlockLength
         result = Token.split_into_token_texts('the', strategy)
         expect(result).to eq(%w[t h e])
       end
+
       it 'handles: " ttt ! "' do
         result = Token.split_into_token_texts(' ttt ! ', strategy)
         expect(result).to eq([' ', 't', 't', 't', ' ', '!', ' '])
+      end
+
+      it 'handles: "  t  t  " (removes multiple spaces)' do
+        result = Token.split_into_token_texts('  t  t  ', strategy)
+        expect(result).to eq([' ', 't', ' ', 't', ' '])
       end
     end
 
@@ -80,14 +86,9 @@ RSpec.describe Token, type: :model do # rubocop:disable Metrics/BlockLength
         expect(result).to eq(['hey', ',', ' ', 'dude', '!'])
       end
 
-      it 'handles: hey,  dude! (double space)' do
-        result = Token.split_into_token_texts('hey,  dude!', strategy)
-        expect(result).to eq(['hey', ',', '  ', 'dude', '!'])
-      end
-
-      it 'handles: hey  dude (double space)' do
-        result = Token.split_into_token_texts('hey  dude', strategy)
-        expect(result).to eq(['hey', '  ', 'dude'])
+      it 'handles: hey,  dude!! (double space, exclamation mark)' do
+        result = Token.split_into_token_texts('hey,  dude!!', strategy)
+        expect(result).to eq(['hey', ',', ' ', 'dude', '!'])
       end
 
       it "handles: hey hey'" do
@@ -190,7 +191,6 @@ RSpec.describe Token, type: :model do # rubocop:disable Metrics/BlockLength
       expect { Token.token_ids_to_token_texts(token_ids) }.to raise_error(/Unknown token id/)
     end
   end
-
 
   describe '::validate_strategy' do
     it 'raises error for an unknown strategy' do

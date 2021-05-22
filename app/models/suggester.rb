@@ -43,7 +43,7 @@ class Suggester
     current_word = find_current_word
     prior_tokens = find_prior_tokens
 
-    if find_prior_tokens
+    if prior_tokens
       candidates_by_current_word_and_tokens(current_word, prior_tokens)
     else
       candidates_by_current_word(current_word)

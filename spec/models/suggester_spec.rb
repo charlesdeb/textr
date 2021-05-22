@@ -74,6 +74,8 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
   end
 
   describe '.find_current_word' do
+    it 'returns a space if the user just typed a space'
+    it 'returns a space if the user just typed a space'
   end
 
   describe '.find_prior_tokens' do

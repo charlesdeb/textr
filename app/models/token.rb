@@ -30,28 +30,29 @@ class Token < ApplicationRecord
   # @param [String] text
   # @param [Symbol] strategy either :by_word or :by_letter
   # @return [Void]
+  #
+  # 'hey,  man!'  -> ["hey", ",", " ", "man", "!"]
+  #
+  # we could make this simpler just by breaking on spaces and ditching
+  # punctuation eg 'hey, man!' -> ["hey", "man"]
+  # We treat a single space as different to multiple spaces
+  #
+  # text_sample_tokens = text_sample.text
+  #                                 .split(/\s|\p{Punct}/)
+  #                                 .compact
+  #                                 .reject(&:empty?)
   def self.split_into_token_texts(text, strategy = :sentence)
     # ensure we are using a known analysis strategy
     validate_strategy(strategy)
+
+    # remove consecutive spaces and other guff
+    text = text.squeeze(' !?')
 
     case strategy
     when :by_letter
       text.split('')
     when :by_word
-      # 'hey, man!'  -> ["hey", ",", " ", "man", "!"]
-      #
-      # we could make this simpler just by breaking on spaces and ditching
-      # punctuation eg 'hey, man!' -> ["hey", "man"]
-      # We treat a single space as different to multiple spaces
-      #
-      # text_sample_tokens = text_sample.text
-      #                                 .split(/\s|\p{Punct}/)
-      #                                 .compact
-      #                                 .reject(&:empty?)
-      text
-        .split(/(\s+)|(\p{Punct})/)
-        .compact
-        .reject(&:empty?)
+      text.split(/(\s+)|(\p{Punct})/).compact.reject(&:empty?)
     end
   end
 
