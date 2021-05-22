@@ -3,13 +3,13 @@
 # Used for suggesting words based to a user
 class Suggester
   def initialize(suggestion_params)
-    @text_message = suggestion_params[:text_message]
+    @text = suggestion_params[:text]
     @language_id = suggestion_params[:language_id]
     @show_analysis = (suggestion_params[:show_analysis] == 'true')
   end
 
   # Returns the most likely candidate tokens to come after the curent
-  # text_message, optionally with analysis
+  # text, optionally with analysis
   #
   # @return [Hash] A fairly complex hash object like this:
   #   { candidates: [
@@ -38,31 +38,36 @@ class Suggester
   #         ] }
   #     ] }
   def suggest
-    return { candidates: [] } if @text_message.empty?
+    return { candidates: [] } if @text.empty?
 
     current_word = find_current_word
-    prior_tokens = find_prior_tokens
+    prior_tokens = find_prior_token_ids
 
     if prior_tokens
-      candidates_by_current_word_and_tokens(current_word, prior_tokens)
+      suggestions_by_current_word_and_prior_tokens(current_word, prior_tokens)
     else
-      candidates_by_current_word(current_word)
+      suggestions_by_current_word(current_word)
     end
   end
 
-  # Finds the most recently typed word in @text_message or nil
+  # Finds the most recently typed word in @text or nil
   # @return [String] nil if the user has just typed a space
-  def find_current_word; end
+  def find_current_word
+    Token.split_into_token_texts(@text, :by_word)[-1]
+  end
 
-  # Finds the tokens in up until the last word @text_message
-  # @return [Array<Token>] nil if the user is entering their first word
-  def find_prior_tokens; end
+  # Finds the tokens in up until the last word @text
+  # @return [Array<Integer>] nil if the user is entering their first word
+  def find_prior_token_ids
+    token_texts = Token.id_ise(@text, :by_word)[0..-2]
+    token_texts.empty? ? nil : token_texts
+  end
 
   # Finds candidate completion words based solely on the current word
   # @return [Array<Hash{token_text=>String, probability=>Float, chunk_size=>Integer}>]
-  def candidates_by_current_word(current_word); end
+  def suggestions_by_current_word(current_word); end
 
   # Finds candidate completion words based on the current word and priorr tokens
   # @return [Array<Hash{token_text=>String, probability=>Float, chunk_size=>Integer}>]
-  def candidates_by_current_word_and_tokens(current_word, prior_tokens); end
+  def suggestions_by_current_word_and_prior_tokens(current_word, prior_tokens); end
 end

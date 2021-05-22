@@ -7,17 +7,17 @@ class Token < ApplicationRecord
   validates_uniqueness_of :text, case_sensitive: false
 
   # Convert the text of text_message to an array of IDs in the tokens table
-  # @param [Object] text_message contains text to convert to tokens
+  # @param [String] message contains text to convert to tokens
   # @param [Symbol] strategy one of :by_letter, :by_word
   # @return [Array] An array of tokens from the tokens table
-  def self.id_ise(text_message, strategy = nil)
+  def self.id_ise(message, strategy = nil)
     # ensure we are using a known analysis strategy
     validate_strategy(strategy)
 
-    return [] if text_message.text.blank?
+    return [] if message.blank?
 
     # split the text into tokens according to the strategy
-    token_texts = split_into_token_texts(text_message.text, strategy)
+    token_texts = split_into_token_texts(message, strategy)
 
     # save any new tokens in the database for future reference
     save_token_texts(token_texts)
@@ -41,7 +41,7 @@ class Token < ApplicationRecord
   #                                 .split(/\s|\p{Punct}/)
   #                                 .compact
   #                                 .reject(&:empty?)
-  def self.split_into_token_texts(text, strategy = :sentence)
+  def self.split_into_token_texts(text, strategy = :by_word)
     # ensure we are using a known analysis strategy
     validate_strategy(strategy)
 
@@ -75,8 +75,8 @@ class Token < ApplicationRecord
   end
 
   # converts an array of tokens in text form to their IDs
-  # @param [Array] token_texts
-  # @return [Array] ids of given token texts
+  # @param [Array<String>] token_texts
+  # @return [Array<Integer>] ids of given token texts
   def self.token_texts_to_token_ids(token_texts)
     token_texts.map do |text|
       Token.where({ text: text }).first.id
@@ -87,8 +87,8 @@ class Token < ApplicationRecord
 
   # convert an array of token ids to an array of text tokens
   #
-  # @param [Array] token_ids
-  # @return [Array] texts of given token IDs
+  # @param [Array<Integer>] token_ids
+  # @return [Array<String>] texts of given token IDs
   def self.token_ids_to_token_texts(token_ids)
     token_ids.map do |token_id|
       Token.where({ id: token_id }).first.text

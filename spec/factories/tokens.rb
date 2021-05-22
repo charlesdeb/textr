@@ -1,5 +1,5 @@
 FactoryBot.define do
   factory :token do
-    text { "MyString" }
+    text { 'The' }
   end
 end

@@ -21,7 +21,7 @@ RSpec.describe Token, type: :model do # rubocop:disable Metrics/BlockLength
     end
 
     it 'requires a known strategy' do
-      Token.id_ise(text_message, strategy)
+      Token.id_ise(text_message.text, strategy)
 
       expect(Token).to have_received(:validate_strategy).with(strategy)
     end
@@ -29,26 +29,26 @@ RSpec.describe Token, type: :model do # rubocop:disable Metrics/BlockLength
     it 'handles text messages with no text' do
       ['', nil].each do |text|
         text_message.text = text
-        expect(Token.id_ise(text_message, :by_word)).to eq([])
+        expect(Token.id_ise(text_message.text, :by_word)).to eq([])
       end
     end
 
     it 'breaks the text into tokens according to strategy' do
       expect(Token).to receive(:split_into_token_texts).with(text_message.text, strategy)
 
-      Token.id_ise(text_message, strategy)
+      Token.id_ise(text_message.text, strategy)
     end
 
     it 'stores tokens in the database' do
       expect(Token).to receive(:save_token_texts).with(token_texts)
 
-      Token.id_ise(text_message, strategy)
+      Token.id_ise(text_message.text, strategy)
     end
 
     it 'returns an array of IDs' do
       expect(Token).to receive(:token_texts_to_token_ids).with(token_texts)
 
-      Token.id_ise(text_message, strategy)
+      Token.id_ise(text_message.text, strategy)
     end
   end
 
@@ -57,6 +57,12 @@ RSpec.describe Token, type: :model do # rubocop:disable Metrics/BlockLength
       expect(Token).to receive(:validate_strategy)
 
       Token.split_into_token_texts('the', :strategy)
+    end
+
+    it 'defaults to using the :by_word strategy' do
+      expect(Token).to receive(:validate_strategy).with(:by_word)
+
+      Token.split_into_token_texts('the')
     end
 
     context ':by_letter splits the text into an array of letters' do

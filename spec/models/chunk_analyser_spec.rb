@@ -27,13 +27,13 @@ RSpec.describe ChunkAnalyser, type: :model do # rubocop:disable Metrics/BlockLen
       it 'that are single characters' do
         analyser.analyse
 
-        expect(Token).to have_received(:id_ise).with(text_message, :by_letter)
+        expect(Token).to have_received(:id_ise).with(text_message.text, :by_letter)
       end
 
       it 'that are single words (or punctuation marks)' do
         analyser.analyse
 
-        expect(Token).to have_received(:id_ise).with(text_message, :by_word)
+        expect(Token).to have_received(:id_ise).with(text_message.text, :by_word)
       end
     end
 

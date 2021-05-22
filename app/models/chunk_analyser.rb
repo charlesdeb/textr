@@ -15,7 +15,7 @@ class ChunkAnalyser
     output = {}
     %i[by_letter by_word].each do |strategy|
       start_time = Time.now
-      token_ids = Token.id_ise(@text_message, strategy)
+      token_ids = Token.id_ise(@text_message.text, strategy)
       analyse_by_tokens(token_ids)
       output[strategy] = { chunks: token_ids.length,
                            seconds_elapsed: Time.now - start_time }
