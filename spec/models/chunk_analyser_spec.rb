@@ -171,11 +171,11 @@ RSpec.describe ChunkAnalyser, type: :model do # rubocop:disable Metrics/BlockLen
 
       let!(:prior_chunk) do
         create(:chunk, {
-                 language: language, token_ids: [1, 2], count: 1, size: chunk_size
+                 language: language, token_ids: [1, 2], count: 2, size: chunk_size
                })
       end
 
-      let(:latest_chunks_hash) { { [1, 2] => 3 } }
+      let(:latest_chunks_hash) { { [1, 2] => 2 } }
 
       it 'combines current hash counts with past counts' do
         analyser.upsert_chunks_hash(latest_chunks_hash, chunk_size)

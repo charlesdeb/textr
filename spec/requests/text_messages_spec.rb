@@ -69,11 +69,13 @@ RSpec.describe 'TextMessages', type: :request do # rubocop:disable Metrics/Block
   describe 'DELETE /reset' do
     before(:each) do
       create_dummy_data
+      TextMessage.all.each(&:analyse)
       delete '/text_messages/reset'
     end
 
     it 'deletes all tokens and text_messages' do
       expect(Token.count).to eq 0
+      expect(Chunk.count).to eq 0
       expect(TextMessage.count).to eq 0
     end
 

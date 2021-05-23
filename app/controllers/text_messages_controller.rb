@@ -23,7 +23,7 @@ class TextMessagesController < ApplicationController
   end
 
   def reset
-    if TextMessage.delete_all && Token.delete_all
+    if TextMessage.delete_all && Chunk.delete_all && Token.delete_all
 
       respond_to do |format|
         format.html do

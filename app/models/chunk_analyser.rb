@@ -79,7 +79,9 @@ class ChunkAnalyser
           size: chunk_size,
           token_ids: token_ids
         }
-      )
+      ).first
+
+      # byebug
 
       # p @text_message
       # puts 'existing chunk from where:'

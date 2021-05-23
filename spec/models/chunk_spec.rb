@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe Chunk, type: :model do
+RSpec.describe Chunk, type: :model do # rubocop:disable Metrics/BlockLength
   describe 'validations' do
     it { should validate_presence_of(:size) }
     it { should validate_presence_of(:count) }
@@ -27,5 +27,49 @@ RSpec.describe Chunk, type: :model do
       dupe_chunk = Chunk.new({ size: 2, count: 1, token_ids: [1, 2], language_id: language.id })
       expect(dupe_chunk).to_not be_valid
     end
+  end
+
+  describe '.chunks_by_starting_tokens' do # rubocop:disable Metrics/BlockLength
+    it 'finds all the chunks without punctuation that start with these tokens' do # rubocop:disable Metrics/BlockLength
+      Token.create!({ id: 1, text: 'c' })
+      Token.create!({ id: 2, text: 'a' })
+      Token.create!({ id: 3, text: 't' })
+      Token.create!({ id: 4, text: 'h' })
+      Token.create!({ id: 5, text: 'e' })
+      Token.create!({ id: 6, text: ' ' })
+
+      ## 2 x ca, 4 x cat, 4 x cath, 1 x c_the, 1 x cat_, 1 x cath_
+      # texts = %w[ca ca cat cat cat cat cath cath cath cath 'c the']
+      texts = ['ca', 'ca',
+               'cat', 'cat', 'cat', 'cat',
+               'cath', 'cath', 'cath', 'cath',
+               'c the', 'cat ', 'cath ']
+      texts.each do |text|
+        text_message = create(:text_message, { text: text, language: language })
+        token_ids = Token.id_ise(text, :by_letter)
+        analyser = ChunkAnalyser.new(text_message)
+        # just put single character tokens in the chunks table
+        analyser.analyse_by_tokens(token_ids)
+      end
+
+      puts "TextMessage.count: #{TextMessage.count}"
+
+      puts "Chunk.count: #{Chunk.count}"
+      puts 'Chunk.all:'
+      Chunk.all.each do |chunk|
+        p chunk
+        # p "#{chunk} #{chunk.token_ids}"
+        puts "#{chunk.token_ids} #{chunk.to_token_texts}"
+      end
+
+      current_word = 'ca'
+      params[:text] = current_word
+      suggester = Suggester.new(params)
+
+      suggestions = suggester.suggestions_by_current_word(current_word)
+      expect(sugges)
+    end
+
+    it 'sets probabilties properly'
   end
 end

@@ -14,6 +14,8 @@ class Chunk < ApplicationRecord
     Token.token_ids_to_token_texts(token_ids)
   end
 
+  def self.by_starting_tokens(token_ids, language_id); end
+
   # Debugging way of seeing contents of chunks table with token_ids maped back to text
   # Chunk.all.map { |chunk| chunk.to_token_texts.join('') + "|     size: #{chunk.size} count: #{chunk.count}" }.sort
 end

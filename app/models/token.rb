@@ -9,7 +9,7 @@ class Token < ApplicationRecord
   # Convert the text of text_message to an array of IDs in the tokens table
   # @param [String] message contains text to convert to tokens
   # @param [Symbol] strategy one of :by_letter, :by_word
-  # @return [Array] An array of tokens from the tokens table
+  # @return [Array<Integer>] An array of token IDs from the tokens table
   def self.id_ise(message, strategy = nil)
     # ensure we are using a known analysis strategy
     validate_strategy(strategy)
@@ -18,6 +18,7 @@ class Token < ApplicationRecord
 
     # split the text into tokens according to the strategy
     token_texts = split_into_token_texts(message, strategy)
+    # p "token_texts: #{token_texts}"
 
     # save any new tokens in the database for future reference
     save_token_texts(token_texts)
