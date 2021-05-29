@@ -45,7 +45,15 @@ class Suggester
   # @return [Array<Integer>] IDs of tokens that could match the word the user is typing
   #
   # Will return [] if there is no match or not current word
-  def get_possible_token_ids(current_word); end
+  def get_possible_token_ids(current_word)
+    return [] if current_word.blank?
+
+    text = Token.arel_table[:text]
+    Token
+      .select('id')
+      .where(text.matches("#{current_word}%"))
+      .map(&:id)
+  end
 
   # Finds the token IDs of the tokens in @text up until the last word
   #

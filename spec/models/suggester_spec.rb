@@ -111,7 +111,54 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  describe '.get_possible_token_ids' do
+  describe '.get_possible_token_ids' do # rubocop:disable Metrics/BlockLength
+    let!(:mope_token_id) { Token.id_ise('mope', :by_word).first }
+    let!(:moon_token_id) { Token.id_ise('moon', :by_word).first }
+    let!(:mike_token_id) { Token.id_ise('mike', :by_word).first }
+
+    it 'returns [] when no matches' do
+      suggester = Suggester.new(params)
+
+      # a word that we have never seen before
+      current_word = 'zigsbery'
+
+      expect(suggester.get_possible_token_ids(current_word)).to eq([])
+    end
+
+    it 'returns [] with empty word' do
+      suggester = Suggester.new(params)
+
+      # a word that we have never seen before
+      current_word = ''
+
+      expect(suggester.get_possible_token_ids(current_word)).to eq([])
+    end
+
+    context 'some sample tokens in database' do
+      it 'works for 1 character words' do
+        current_word = 'm'
+        params[:text] = current_word
+        suggester = Suggester.new(params)
+
+        possible_token_ids = suggester.get_possible_token_ids(current_word)
+
+        expect(possible_token_ids).to include(mope_token_id)
+        expect(possible_token_ids).to include(moon_token_id)
+        expect(possible_token_ids).to include(mike_token_id)
+      end
+
+      it 'works for 2 character words' do
+        current_word = 'mo'
+        params[:text] = current_word
+        suggester = Suggester.new(params)
+
+        possible_token_ids = suggester.get_possible_token_ids(current_word)
+
+        expect(possible_token_ids).to include(mope_token_id)
+        expect(possible_token_ids).to include(moon_token_id)
+        expect(possible_token_ids).to_not include(mike_token_id)
+      end
+    end
   end
 
   describe '.find_prior_token_ids' do # rubocop:disable Metrics/BlockLength
@@ -124,12 +171,10 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       Token.create!({ id: 5, text: 'hat' })
     end
 
-    it 'handles spaces at the end'
-
     it 'returns the prior tokens' do
       texts_and_expectations = [
         { text: 'the', expected_token_ids: nil },
-        { text: 'the ', expected_token_ids: [1] },
+        { text: 'the   ', expected_token_ids: [1] }, # spaces at the end]
         { text: 'the ca', expected_token_ids: [1, 2] },
         { text: 'the cat', expected_token_ids: [1, 2] },
         { text: 'the cat ', expected_token_ids: [1, 2, 3] },
