@@ -29,21 +29,24 @@ RSpec.describe Chunk, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  describe '.chunks_by_starting_tokens' do # rubocop:disable Metrics/BlockLength
-    it 'finds all the chunks without punctuation that start with these tokens' do # rubocop:disable Metrics/BlockLength
+  describe '.chunks_by_starting_tokens' do
+    let(:language) { create(:language, language: 'Klingon') }
+
+    it 'finds all the chunks without punctuation that start with these tokens' do
       Token.create!({ id: 1, text: 'c' })
       Token.create!({ id: 2, text: 'a' })
       Token.create!({ id: 3, text: 't' })
       Token.create!({ id: 4, text: 'h' })
-      Token.create!({ id: 5, text: 'e' })
-      Token.create!({ id: 6, text: ' ' })
+      # Token.create!({ id: 5, text: 'e' })
+      # Token.create!({ id: 6, text: ' ' })
 
       ## 2 x ca, 4 x cat, 4 x cath, 1 x c_the, 1 x cat_, 1 x cath_
       # texts = %w[ca ca cat cat cat cat cath cath cath cath 'c the']
-      texts = ['ca', 'ca',
-               'cat', 'cat', 'cat', 'cat',
-               'cath', 'cath', 'cath', 'cath',
-               'c the', 'cat ', 'cath ']
+      texts = %w[ca cat cath cath]
+      # texts = ['ca', 'ca',
+      #          'cat', 'cat', 'cat', 'cat',
+      #          'cath', 'cath', 'cath', 'cath',
+      #          'c the', 'cat ', 'cath ']
       texts.each do |text|
         text_message = create(:text_message, { text: text, language: language })
         token_ids = Token.id_ise(text, :by_letter)
@@ -56,18 +59,22 @@ RSpec.describe Chunk, type: :model do # rubocop:disable Metrics/BlockLength
 
       puts "Chunk.count: #{Chunk.count}"
       puts 'Chunk.all:'
-      Chunk.all.each do |chunk|
-        p chunk
-        # p "#{chunk} #{chunk.token_ids}"
-        puts "#{chunk.token_ids} #{chunk.to_token_texts}"
-      end
+      # Chunk.all.each do |chunk|
+      #   p chunk
+      #   # p "#{chunk} #{chunk.token_ids}"
+      #   puts "#{chunk.token_ids} #{chunk.to_token_texts}"
+      # end
 
-      current_word = 'ca'
-      params[:text] = current_word
-      suggester = Suggester.new(params)
+      token_ids = [1, 2] # current word is 'ca'
 
-      suggestions = suggester.suggestions_by_current_word(current_word)
-      expect(sugges)
+      Chunk.by_starting_tokens(token_ids, language.id)
+
+      # current_word = 'ca'
+      # params[:text] = current_word
+      # suggester = Suggester.new(params)
+
+      # suggestions = suggester.suggestions_by_current_word(current_word)
+      # expect(sugges)
     end
 
     it 'sets probabilties properly'

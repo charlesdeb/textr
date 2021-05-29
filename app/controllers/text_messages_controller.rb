@@ -36,7 +36,8 @@ class TextMessagesController < ApplicationController
   def suggest
     suggestions = Suggester.new(suggest_params).suggest
 
-    @candidates = suggestions[:candidates]
+    @candidates = suggestions && suggestions[:candidates] || []
+    p @candidates
 
     @analysis = suggestions[:analysis] if suggest_params[:show_analysis] == 'true'
 
@@ -63,6 +64,6 @@ class TextMessagesController < ApplicationController
 
   # Only allow a list of trusted parameters through.
   def suggest_params
-    params.permit(:current_message, :language_id, :show_analysis)
+    params.permit(:text, :language_id, :show_analysis)
   end
 end

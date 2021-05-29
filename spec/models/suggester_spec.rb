@@ -18,20 +18,50 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
 
   describe '.suggest' do # rubocop:disable Metrics/BlockLength
     context 'when text is empty' do
-      it 'returns no candidates or analysis' do
+      it 'returns no candidates' do
         params[:text] = ''
         output = Suggester.new(params).suggest
 
         expect(output[:candidates]).to eq([])
         expect(output[:analysis]).to be_nil
       end
+
+      it 'handles text full of spaces' do
+        params[:text] = '   '
+        output = Suggester.new(params).suggest
+
+        expect(output[:candidates]).to eq([])
+        expect(output[:analysis]).to be_nil
+      end
+
+      it 'gives a reason when analysis is required' do
+        params[:text] = ''
+        params[:show_analysis] = 'true'
+        output = Suggester.new(params).suggest
+
+        expect(output[:analysis]).to eq('No text provided')
+      end
+
+      it 'gives no analysis if not required' do
+        params[:text] = ''
+        output = Suggester.new(params).suggest
+
+        expect(output).to_not include(:analysis)
+      end
     end
 
-    context 'when text is not empty' do # rubocop:disable Metrics/BlockLength
+    context 'when text is not empty' do
       let(:suggester) { Suggester.new(params) }
 
       it 'finds latest word being typed' do
         expect(suggester).to receive(:find_current_word)
+
+        suggester.suggest
+      end
+
+      it 'gets possible tokens based on the current word' do
+        allow(suggester).to receive(:find_current_word).and_return('current_word')
+        expect(suggester).to receive(:get_possible_token_ids).with('current_word')
 
         suggester.suggest
       end
@@ -42,33 +72,16 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
         suggester.suggest
       end
 
-      context 'when no prior words/tokens' do
-        it 'suggests a word based on what is being typed' do
-          params[:text] = 'th'
-          current_word = params[:text]
-          suggester = Suggester.new(params)
-          allow(suggester).to receive(:find_current_word).and_return(current_word)
-          allow(suggester).to receive(:find_prior_token_ids).and_return(nil)
+      it 'gets suggestions' do
+        allow(suggester).to receive(:get_suggestions).and_return('sugestions')
 
-          expect(suggester).to receive(:suggestions_by_current_word).with(current_word)
-
-          suggester.suggest
-        end
+        expect(suggester.suggest).to eq('sugestions')
       end
 
-      context 'when there are prior words/tokens' do
-        it 'suggests a word based on what is being typed and what came before' do
-          params[:text] = 'the ca'
-          prior_tokens = [1]
-          current_word = params[:text].split[-1]
-          suggester = Suggester.new(params)
-          allow(suggester).to receive(:find_current_word).and_return(current_word)
-          allow(suggester).to receive(:find_prior_token_ids).and_return(prior_tokens)
+      it 'returns suggestions' do
+        expect(suggester).to receive(:get_suggestions)
 
-          expect(suggester).to receive(:suggestions_by_current_word_and_prior_tokens).with(current_word, prior_tokens)
-
-          suggester.suggest
-        end
+        suggester.suggest
       end
     end
   end
@@ -98,6 +111,9 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
+  describe '.get_possible_token_ids' do
+  end
+
   describe '.find_prior_token_ids' do # rubocop:disable Metrics/BlockLength
     before(:each) do
       # add some tokens to the database
@@ -123,12 +139,15 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
         params[:text] = text_and_expectation[:text]
         expected_token_ids = text_and_expectation[:expected_token_ids]
         suggester = Suggester.new(params)
-        prior_tokens = suggester.find_prior_token_ids
-        expect(prior_tokens)
+        prior_token_ids = suggester.find_prior_token_ids
+        expect(prior_token_ids)
           .to eq(expected_token_ids),
-              "expected '#{expected_token_ids}', got '#{prior_tokens}' from input of '#{params[:text]}'"
+              "expected '#{expected_token_ids}', got '#{prior_token_ids}' from input of '#{params[:text]}'"
       end
     end
+  end
+
+  describe '.get_suggestions' do
   end
 
   describe '.suggestions_by_current_word' do # rubocop:disable Metrics/BlockLength
@@ -175,7 +194,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  skip '.suggestions_by_current_word_and_prior_tokens' do
+  skip '.suggestions_by_current_word_and_prior_token_ids' do
     it 'hash contains candidates' do
       output = Suggester.new(params).suggest
       expect(output).to include(:candidates)

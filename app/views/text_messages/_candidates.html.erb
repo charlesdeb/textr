@@ -2,10 +2,8 @@
   <p>Sorry, no suggestions for that input</p>
 <% else %>
   <ul>
-  <% @candidates.each do |candidate| %>
-
-    <li class='candidate'><%= candidate[:token_text] %> &nbsp;(<%= number_to_percentage(candidate[:probability] * 100, precision: 0) %>)</li>
-  
-  <% end %>
+    <% @candidates.each do |candidate| %>
+      <li class='candidate'><%= candidate[:token_text] %> &nbsp;(<%= number_to_percentage(candidate[:probability] * 100, precision: 0) %>)</li>
+    <% end %>
   </ul>
 <% end %>
