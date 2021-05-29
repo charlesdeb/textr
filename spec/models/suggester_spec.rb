@@ -177,8 +177,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
         { text: 'the   ', expected_token_ids: [1] }, # spaces at the end]
         { text: 'the ca', expected_token_ids: [1, 2] },
         { text: 'the cat', expected_token_ids: [1, 2] },
-        { text: 'the cat ', expected_token_ids: [1, 2, 3] },
-        { text: 'the cat in the hat', expected_token_ids: [1, 2, 3, 2, 4, 2, 1, 2] }
+        { text: 'the cat ', expected_token_ids: [1, 2, 3] }
       ]
       texts_and_expectations.each do |text_and_expectation|
         params[:text] = text_and_expectation[:text]
@@ -190,9 +189,39 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
               "expected '#{expected_token_ids}', got '#{prior_token_ids}' from input of '#{params[:text]}'"
       end
     end
+
+    it 'returns a maximum of the last 8 tokens' do
+      text = 'the cat in the hat in' # 11 tokens (6 words, 5 spaces)
+      params[:text] = text
+      suggester = Suggester.new(params)
+      prior_token_ids = suggester.find_prior_token_ids
+      expect(prior_token_ids.length)
+        .to eq(8)
+      expect(prior_token_ids)
+        .to eq([3, 2, 4, 2, 1, 2, 5, 2]) # 'cat in the hat '
+    end
+
+    it 'returns exactly 8 tokens if 8 plus a word submitted' do
+      text = 'the cat in the hat' # 8 tokens plus the final word "hat"
+      params[:text] = text
+      suggester = Suggester.new(params)
+      prior_token_ids = suggester.find_prior_token_ids
+      expect(prior_token_ids.length)
+        .to eq(8)
+      expect(prior_token_ids)
+        .to eq([1, 2, 3, 2, 4, 2, 1, 2]) # 'the cat in the '
+    end
   end
 
   describe '.get_suggestions' do
+    it 'creates a where clause for the prior tokens'
+    it 'creates a where clause for the possible tokens'
+    it 'retrieves some chunks from the database'
+    context 'no prior tokens' do
+    end
+
+    context 'no possible tokens' do
+    end
   end
 
   describe '.suggestions_by_current_word' do # rubocop:disable Metrics/BlockLength

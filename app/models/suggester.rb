@@ -44,7 +44,7 @@ class Suggester
   #
   # @return [Array<Integer>] IDs of tokens that could match the word the user is typing
   #
-  # Will return [] if there is no match or not current word
+  # Will return [] if there is no match or current word is empty
   def get_possible_token_ids(current_word)
     return [] if current_word.blank?
 
@@ -55,13 +55,18 @@ class Suggester
       .map(&:id)
   end
 
-  # Finds the token IDs of the tokens in @text up until the last word
+  # Finds the last 8 token IDs of the tokens in @text
   #
   # @return [Array<Integer>] nil if the user is entering their first word
   #
   # Creates tokens if needed for any new words
   def find_prior_token_ids
+    # get the tokens ids except for the last token
     token_ids = Token.id_ise(@text, :by_word)[0..-2]
+
+    # return (at most) the most recent 8 of those tokens
+    token_ids = token_ids[(token_ids.length > 8 ? -8 : (-1 - (token_ids.length - 1)))..]
+
     token_ids.empty? ? nil : token_ids
   end
 
