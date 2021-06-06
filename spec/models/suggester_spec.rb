@@ -59,32 +59,45 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
         suggester.suggest
       end
 
-      it 'gets possible tokens based on the current word' do
-        allow(suggester).to receive(:find_current_word).and_return('current_word')
-        expect(suggester).to receive(:get_possible_token_ids).with('current_word')
-
-        suggester.suggest
-      end
-
       it 'finds prior tokens' do
         expect(suggester).to receive(:find_prior_token_ids)
 
         suggester.suggest
       end
 
-      it 'gets suggestions' do
-        allow(suggester).to receive(:get_suggestions).and_return('sugestions')
-
-        expect(suggester.suggest).to eq('sugestions')
-      end
-
-      it 'returns suggestions' do
-        expect(suggester).to receive(:get_suggestions)
+      it 'gets chunk candidates' do
+        # allow(suggester).to receive(:get_chunk_candidates).and_return('suggestions')
+        # expect(suggester.suggest).to eq('suggestions')
+        expect(suggester).to receive(:get_chunk_candidates)
 
         suggester.suggest
       end
+
+      it 'builds suggestions' do
+        # allow(suggester).to receive(:get_chunk_candidates).and_return('suggestions')
+        # expect(suggester.suggest).to eq('suggestions')
+        expect(suggester).to receive(:build_suggestions)
+
+        suggester.suggest
+      end
+
+      it 'returns suggestions' do
+        # expect(suggester).to receive(:get_suggestions)
+        allow(suggester).to receive(:build_suggestions).and_return('suggestions')
+
+        suggestions = suggester.suggest
+
+        expect(suggestions).to eq('suggestions')
+      end
     end
   end
+
+  # it 'gets possible tokens based on the current word' do
+  #   allow(suggester).to receive(:find_current_word).and_return('current_word')
+  #   expect(suggester).to receive(:get_possible_token_ids).with('current_word')
+
+  #   suggester.suggest
+  # end
 
   describe '.find_current_word' do
     it 'handles spaces at the end' do

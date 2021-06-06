@@ -2,6 +2,9 @@
 
 # Used for suggesting words based to a user
 class Suggester
+  # Maximum number of suggestions to show the user
+  MAX_SUGGESTIONS = 5
+
   def initialize(suggestion_params)
     @text = suggestion_params[:text]
     @language_id = suggestion_params[:language_id].to_i
@@ -20,16 +23,12 @@ class Suggester
     end
 
     current_word = find_current_word
-    possible_token_ids = get_possible_token_ids(current_word)
+    # possible_token_ids = get_possible_token_ids(current_word)
     prior_token_ids = find_prior_token_ids
 
-    get_suggestions(prior_token_ids, possible_token_ids)
+    chunk_candidates = get_chunk_candidates(prior_token_ids, current_word)
 
-    # if prior_token_ids
-    #   suggestions_by_current_word_and_prior_token_ids(current_word, prior_token_ids)
-    # else
-    #   suggestions_by_current_word(current_word)
-    # end
+    build_suggestions(chunk_candidates)
   end
 
   # Finds the most recently typed word in @text or nil
@@ -70,9 +69,20 @@ class Suggester
     token_ids.empty? ? nil : token_ids
   end
 
-  # Returns the actual suggestions of possible token completions with probabilities
-  # @param prior_token_ids [Array<Token>] Tokens representing what the user has already entered before the current word
-  # @param possible_token_ids [Array<Token>] Tokens that could match the last word user
+  # Returns best chunk candidates that match current user input
+  #
+  # @param prior_token_ids [Array<Integer>] array of token IDs that have been
+  #                                         entered so far
+  # @param current_word [String] text of the word the user is currently typing
+  #
+  # @return [Hash] a hash containing word suggestions, and (optionally) some
+  #                analysis
+  def get_chunk_candidates(prior_token_ids, current_word); end
+
+  # Returns a hash of suggestions and (optionally) analysis from the best
+  # chunk candidates
+  #
+  # @param [Array<Chunk>] chunks that best match the users input
   #
   # @return [Hash] A fairly complex hash object like this:
   #   { candidates: [
@@ -100,7 +110,12 @@ class Suggester
   #           { token_text: 'this', probability: 0.05 }
   #         ] }
   #     ] }
+  def build_suggestions(chunk_candidates); end
 
+  # Returns the actual suggestions of possible token completions with probabilities
+  # @param prior_token_ids [Array<Token>] Tokens representing what the user has already entered before the current word
+  # @param possible_token_ids [Array<Token>] Tokens that could match the last word user
+  #
   def get_suggestions(_prior_token_ids, _possible_token_ids)
     # { candidates: [{ token_text: 'stuff', probability: 0.5 }] }
   end
