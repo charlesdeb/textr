@@ -229,17 +229,18 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
   end
 
   describe '.get_chunk_candidates' do # rubocop:disable Metrics/BlockLength
-    context '5 or more candidates for prior tokens and the current word' do
-      let(:prior_token_ids) { [1, 2, 3, 4] }
-      let(:current_word) { 'ha' }
-      # let(:dummy_chunk) { double(Chunk) }
-      let(:dummy_chunk) { create(:chunk) }
-      let(:candidate_chunks) { Array.new(7, dummy_chunk) }
-      let(:suggester) { Suggester.new(params) }
+    let(:prior_token_ids) { [1, 2, 3, 4] }
+    let(:current_word) { 'ha' }
+    let(:suggester) { Suggester.new(params) }
+    let(:max_suggestions) { Suggester::MAX_SUGGESTIONS }
+
+    context '5 or more candidates for prior tokens and the current word' do # rubocop:disable Metrics/BlockLength
+      let(:candidate_chunks) do
+        double('AR relation', count: max_suggestions).as_null_object
+      end
 
       before(:each) do
-        # allow(Chunk).to receive(:by_starting_token_ids).and_return(candidate_chunks)
-        # allow(candidate_chunks).to receive(:by_current_word).and_return(candidate_chunks)
+        allow(Chunk).to receive(:by_starting_token_ids).and_return(candidate_chunks)
       end
 
       it 'gets chunks by_starting_token_ids once only' do
@@ -249,16 +250,52 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       end
 
       it 'gets chunks by_current_word once only' do
-        expect(Chunk).to receive(:by_current_word).once
+        expect(candidate_chunks).to receive(:by_current_word).once
 
         suggester.get_chunk_candidates(prior_token_ids, current_word)
       end
 
-      it "doesn't call get_chunk_candidates again"
+      it 'only returns \'max_suggestions\' candidates' do
+        expect(candidate_chunks).to receive(:limit).with(5)
+
+        suggester.get_chunk_candidates(prior_token_ids, current_word)
+      end
+
+      it 'returns the most likely candidates' do
+        expect(candidate_chunks).to receive(:order).with(:count)
+
+        suggester.get_chunk_candidates(prior_token_ids, current_word)
+      end
+
+      it "doesn't call get_chunk_candidates again" do
+        expect(suggester).to receive(:get_chunk_candidates).once
+
+        suggester.get_chunk_candidates(prior_token_ids, current_word)
+      end
+
+      it 'returns chunk candidates' do
+        result = suggester.get_chunk_candidates(prior_token_ids, current_word)
+        expect(result.count).to eq(max_suggestions)
+        expect(result).to eq(candidate_chunks)
+      end
     end
 
     context 'less than 5 candidates for prior tokens and the current word, but 5 or more for the prior tokens' do
-      it 'gets chunks by_starting_token_ids twice only'
+      let(:candidate_chunks_by_word) do
+        double('AR relation', count: max_suggestions - 2).as_null_object
+      end
+
+      before(:each) do
+        allow(Chunk)
+          .to receive(:by_starting_token_ids)
+          .and_return(candidate_chunks_by_word)
+      end
+
+      it 'gets chunks by_starting_token_ids twice' do
+        expect(Chunk).to receive(:by_starting_token_ids).twice
+
+        suggester.get_chunk_candidates(prior_token_ids, current_word)
+      end
       it 'gets chunks by_current_word once only'
       it "doesn't call get_chunk_candidates again"
     end

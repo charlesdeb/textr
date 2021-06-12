@@ -78,8 +78,13 @@ class Suggester
   #
   # @return [Hash] a hash containing word suggestions, and (optionally) some
   #                analysis
-  def get_chunk_candidates(prior_token_ids, _current_word)
+  def get_chunk_candidates(prior_token_ids, current_word)
     chunks = Chunk.by_starting_token_ids(prior_token_ids)
+                  .by_current_word(current_word)
+                  .order(:count)
+                  .limit(MAX_SUGGESTIONS)
+
+    return chunks if chunks.count == MAX_SUGGESTIONS
   end
 
   # Returns a hash of suggestions and (optionally) analysis from the best
