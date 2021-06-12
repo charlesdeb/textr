@@ -60,11 +60,12 @@ class Suggester
   #
   # Creates tokens if needed for any new words
   def find_prior_token_ids
+    max_tokens_to_return = ChunkAnalyser::CHUNK_SIZE_RANGE.max - 1
     # get the tokens ids except for the last token
     token_ids = Token.id_ise(@text, :by_word)[0..-2]
 
     # return (at most) the most recent 8 of those tokens
-    token_ids = token_ids[(token_ids.length > 8 ? -8 : (-1 - (token_ids.length - 1)))..]
+    token_ids = token_ids[(token_ids.length > max_tokens_to_return ? -max_tokens_to_return : (-1 - (token_ids.length - 1)))..]
 
     token_ids.empty? ? nil : token_ids
   end
@@ -77,7 +78,9 @@ class Suggester
   #
   # @return [Hash] a hash containing word suggestions, and (optionally) some
   #                analysis
-  def get_chunk_candidates(prior_token_ids, current_word); end
+  def get_chunk_candidates(prior_token_ids, _current_word)
+    chunks = Chunk.by_starting_token_ids(prior_token_ids)
+  end
 
   # Returns a hash of suggestions and (optionally) analysis from the best
   # chunk candidates

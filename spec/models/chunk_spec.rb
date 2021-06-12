@@ -29,7 +29,7 @@ RSpec.describe Chunk, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  describe '.chunks_by_starting_tokens' do
+  describe '#chunks_by_starting_tokens' do
     let(:language) { create(:language, language: 'Klingon') }
 
     it 'finds all the chunks without punctuation that start with these tokens' do
@@ -78,5 +78,34 @@ RSpec.describe Chunk, type: :model do # rubocop:disable Metrics/BlockLength
     end
 
     it 'sets probabilties properly'
+  end
+
+  describe '#by_starting_token_ids' do
+    let(:prior_token_ids) { [1, 2, 3] }
+    let!(:chunk) { create(:chunk, token_ids: [1, 2, 3, 4]) }
+
+    it 'returns empty relation if there are no prior_token_ids' do
+      prior_token_ids = []
+      expect(Chunk.by_starting_token_ids(prior_token_ids).count).to eq(0)
+    end
+
+    it 'returns empty relation if there are no chunks with these prior_token_ids' do
+      prior_token_ids = [5, 6, 7]
+
+      expect(Chunk.by_starting_token_ids(prior_token_ids).count).to eq(0)
+    end
+
+    it 'returns chunks with these prior_token_ids' do
+      expect(Chunk.by_starting_token_ids(prior_token_ids).first).to eq(chunk)
+    end
+
+    it 'handles long prior_token_ids' do
+      prior_token_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      expect(Chunk.by_starting_token_ids(prior_token_ids).count).to eq(0)
+    end
+  end
+
+  describe "#by_current_word" do
+    
   end
 end
