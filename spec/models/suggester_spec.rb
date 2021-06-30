@@ -50,8 +50,14 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       end
     end
 
-    context 'when text is not empty' do
+    context 'when text is not empty' do # rubocop:disable Metrics/BlockLength
       let(:suggester) { Suggester.new(params) }
+
+      before(:each) do
+        allow(suggester)
+          .to receive(:get_candidate_chunks)
+          .and_return('some candidates')
+      end
 
       it 'finds latest word being typed' do
         expect(suggester).to receive(:find_current_word)
@@ -66,15 +72,15 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       end
 
       it 'gets chunk candidates' do
-        # allow(suggester).to receive(:get_chunk_candidates).and_return('suggestions')
+        # allow(suggester).to receive(:get_candidate_chunks).and_return('suggestions')
         # expect(suggester.suggest).to eq('suggestions')
-        expect(suggester).to receive(:get_chunk_candidates)
+        expect(suggester).to receive(:get_candidate_chunks)
 
         suggester.suggest
       end
 
       it 'builds suggestions' do
-        # allow(suggester).to receive(:get_chunk_candidates).and_return('suggestions')
+        # allow(suggester).to receive(:get_candidate_chunks).and_return('suggestions')
         # expect(suggester.suggest).to eq('suggestions')
         expect(suggester).to receive(:build_suggestions)
 
@@ -228,82 +234,190 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  describe '.get_chunk_candidates' do # rubocop:disable Metrics/BlockLength
-    let(:prior_token_ids) { [1, 2, 3, 4] }
-    let(:current_word) { 'ha' }
-    let(:suggester) { Suggester.new(params) }
-    let(:max_suggestions) { Suggester::MAX_SUGGESTIONS }
+  describe '.get_candidate_chunks' do # rubocop:disable Metrics/BlockLength
+    context 'we have prior tokens and a current word' do # rubocop:disable Metrics/BlockLength
+      let(:prior_token_ids) { [1, 2, 3, 4] }
+      let(:current_word) { 'ha' }
+      let(:candidate_tokens) { [] }
+      let(:suggester) { Suggester.new(params) }
+      let(:max_suggestions) { Suggester::MAX_SUGGESTIONS }
 
-    context '5 or more candidates for prior tokens and the current word' do # rubocop:disable Metrics/BlockLength
-      let(:candidate_chunks) do
-        double('AR relation', count: max_suggestions).as_null_object
+      context '5 or more candidates for prior tokens and the current word' do # rubocop:disable Metrics/BlockLength
+        let(:chunk_candidates_by_prior_tokens_and_current_word) do
+          double('AR Relation 7 candidates', count: max_suggestions + 2)
+            .as_null_object
+        end
+
+        let(:five_chunk_candidates_by_prior_tokens_and_current_word) do
+          double('AR Relation 5 candidates', count: max_suggestions)
+            .as_null_object
+        end
+
+        before(:each) do
+          allow(suggester)
+            .to receive(:get_chunks_by_prior_tokens_and_current_word)
+            .and_return(chunk_candidates_by_prior_tokens_and_current_word)
+
+          allow(chunk_candidates_by_prior_tokens_and_current_word)
+            .to receive(:limit)
+            .and_return(five_chunk_candidates_by_prior_tokens_and_current_word)
+
+          allow(five_chunk_candidates_by_prior_tokens_and_current_word)
+            .to receive(:to_a)
+            .and_return(Array.new(five_chunk_candidates_by_prior_tokens_and_current_word.count, 'some chunk'))
+
+          allow(suggester)
+            .to receive(:get_token_candidates_from_chunks)
+            .and_return(Array.new(five_chunk_candidates_by_prior_tokens_and_current_word.count, 'some token'))
+        end
+
+        it 'gets chunks by prior tokens and current word' do
+          expect(suggester)
+            .to receive(:get_chunks_by_prior_tokens_and_current_word)
+            .with(prior_token_ids, current_word, candidate_tokens)
+
+          suggester.get_candidate_chunks(prior_token_ids, current_word)
+        end
+
+        it 'doesn\'t get chunks just by prior tokens' do
+          expect(suggester)
+            .not_to receive(:get_chunks_by_prior_tokens)
+            .with(prior_token_ids, candidate_tokens)
+
+          suggester.get_candidate_chunks(prior_token_ids, current_word)
+        end
+
+        it 'doesn\'t get chunks for less prior tokens' do
+          expect(suggester)
+            .to receive(:get_candidate_chunks).once
+
+          suggester.get_candidate_chunks(prior_token_ids, current_word)
+        end
+
+        it 'returns chunk_candidates' do
+          # expect(suggester)
+          #   .to receive(:get_chunks_by_prior_tokens_and_current_word)
+          #   .and_return(chunk_candidates_by_prior_tokens_and_current_word)
+
+          expect(suggester.get_candidate_chunks(prior_token_ids, current_word))
+            .to eq(five_chunk_candidates_by_prior_tokens_and_current_word.to_a)
+        end
       end
 
-      before(:each) do
-        allow(Chunk).to receive(:by_starting_token_ids).and_return(candidate_chunks)
+      context 'less than 5 candidates for prior tokens and the current word, but 5 or more for the prior tokens' do # rubocop:disable Metrics/BlockLength
+        let(:three_chunk_candidates_by_prior_tokens_and_current_word) do
+          double('AR first candidates', count: max_suggestions - 2)
+            .as_null_object
+        end
+
+        let(:three_tokens) do
+          Array.new(three_chunk_candidates_by_prior_tokens_and_current_word.count, 'some token')
+        end
+
+        let(:seven_chunk_candidates_by_prior_tokens) do
+          double('AR next 7 candidates', count: max_suggestions + 2)
+            .as_null_object
+        end
+
+        let(:four_chunk_candidates_by_prior_tokens) do
+          double('AR next 4 candidates', count: 4).as_null_object
+        end
+
+        let(:two_chunk_candidates_by_prior_tokens) do
+          double('AR next 2 candidates', count: 2).as_null_object
+        end
+
+        let(:two_tokens) do
+          Array.new(two_chunk_candidates_by_prior_tokens.count, 'some token')
+        end
+
+        before(:each) do # rubocop:disable Metrics/BlockLength
+          allow(suggester)
+            .to receive(:get_chunks_by_prior_tokens_and_current_word)
+            .and_return(three_chunk_candidates_by_prior_tokens_and_current_word)
+
+          allow(three_chunk_candidates_by_prior_tokens_and_current_word)
+            .to receive(:limit)
+            .and_return(three_chunk_candidates_by_prior_tokens_and_current_word)
+
+          allow(three_chunk_candidates_by_prior_tokens_and_current_word)
+            .to receive(:to_a)
+            .and_return(Array.new(three_chunk_candidates_by_prior_tokens_and_current_word.count, 'some chunk'))
+
+          allow(suggester)
+            .to receive(:get_token_candidates_from_chunks)
+            .with(three_chunk_candidates_by_prior_tokens_and_current_word.to_a)
+            .and_return(three_tokens)
+
+          allow(suggester)
+            .to receive(:get_chunks_by_prior_tokens)
+            .and_return(seven_chunk_candidates_by_prior_tokens)
+
+          allow(seven_chunk_candidates_by_prior_tokens)
+            .to receive(:limit)
+            .and_return(two_chunk_candidates_by_prior_tokens)
+
+          allow(two_chunk_candidates_by_prior_tokens)
+            .to receive(:to_a)
+            .and_return(Array.new(two_chunk_candidates_by_prior_tokens.count, 'some chunk'))
+
+          allow(suggester)
+            .to receive(:get_token_candidates_from_chunks)
+            .with(two_chunk_candidates_by_prior_tokens.to_a)
+            .and_return(two_tokens)
+        end
+
+        it 'gets chunks by prior tokens and current word' do
+          expect(suggester)
+            .to receive(:get_chunks_by_prior_tokens_and_current_word)
+            .with(prior_token_ids, current_word, candidate_tokens)
+
+          suggester.get_candidate_chunks(prior_token_ids, current_word)
+        end
+
+        it 'also gets chunks just by prior tokens without previously found chunks' do
+          candidate_tokens = ['some token', 'some token', 'some token']
+
+          expect(suggester)
+            .to receive(:get_chunks_by_prior_tokens)
+            .with(prior_token_ids, candidate_tokens)
+
+          suggester.get_candidate_chunks(prior_token_ids, current_word)
+        end
+
+        it 'doesn\'t get chunks for less prior tokens' do
+          expect(suggester)
+            .to receive(:get_candidate_chunks).once
+
+          suggester.get_candidate_chunks(prior_token_ids, current_word)
+        end
+
+        it 'returns chunk_candidates' do
+          expect(suggester.get_candidate_chunks(prior_token_ids, current_word))
+            .to eq(three_chunk_candidates_by_prior_tokens_and_current_word.to_a + two_chunk_candidates_by_prior_tokens.to_a)
+        end
       end
 
-      it 'gets chunks by_starting_token_ids once only' do
-        expect(Chunk).to receive(:by_starting_token_ids).once
+      context 'less than 5 candidates for prior tokens' do
+        it 'gets chunks by prior tokens and current word'
+        it 'also gets chunks just by prior tokens and current word'
+        it 'adds more get chunks for less prior tokens' do
+          expect(suggester)
+            .to receive(:get_candidate_chunks).twice
 
-        suggester.get_chunk_candidates(prior_token_ids, current_word)
+          suggester.get_candidate_chunks(prior_token_ids, current_word)
+        end
       end
 
-      it 'gets chunks by_current_word once only' do
-        expect(candidate_chunks).to receive(:by_current_word).once
-
-        suggester.get_chunk_candidates(prior_token_ids, current_word)
+      context 'less than 5 candidates for prior tokens' do
       end
 
-      it 'only returns \'max_suggestions\' candidates' do
-        expect(candidate_chunks).to receive(:limit).with(5)
+      it 'handles no prior_token_ids'
+      it 'handles no current_word'
 
-        suggester.get_chunk_candidates(prior_token_ids, current_word)
-      end
-
-      it 'returns the most likely candidates' do
-        expect(candidate_chunks).to receive(:order).with(:count)
-
-        suggester.get_chunk_candidates(prior_token_ids, current_word)
-      end
-
-      it "doesn't call get_chunk_candidates again" do
-        expect(suggester).to receive(:get_chunk_candidates).once
-
-        suggester.get_chunk_candidates(prior_token_ids, current_word)
-      end
-
-      it 'returns chunk candidates' do
-        result = suggester.get_chunk_candidates(prior_token_ids, current_word)
-        expect(result.count).to eq(max_suggestions)
-        expect(result).to eq(candidate_chunks)
-      end
-    end
-
-    context 'less than 5 candidates for prior tokens and the current word, but 5 or more for the prior tokens' do
-      let(:candidate_chunks_by_word) do
-        double('AR relation', count: max_suggestions - 2).as_null_object
-      end
-
-      before(:each) do
-        allow(Chunk)
-          .to receive(:by_starting_token_ids)
-          .and_return(candidate_chunks_by_word)
-      end
-
-      it 'gets chunks by_starting_token_ids twice' do
-        expect(Chunk).to receive(:by_starting_token_ids).twice
-
-        suggester.get_chunk_candidates(prior_token_ids, current_word)
-      end
-      it 'gets chunks by_current_word once only'
-      it "doesn't call get_chunk_candidates again"
-    end
-
-    context 'less than 5 candidates for prior tokens' do
       it 'gets chunks by_starting_token_ids twice only'
       it 'gets chunks by_current_word once only'
-      it 'calls get_chunk_candidates again'
+      it 'calls get_candidate_chunks again'
     end
   end
 

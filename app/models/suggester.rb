@@ -14,7 +14,7 @@ class Suggester
   # Returns the most likely candidate tokens to come after the curent
   # text, optionally with analysis
   #
-  # @return [Hash] See get_suggestions for details
+  # @return [Hash] See build_suggestions for details
   def suggest
     if @text.strip.empty?
       output = { candidates: [] }
@@ -26,7 +26,7 @@ class Suggester
     # possible_token_ids = get_possible_token_ids(current_word)
     prior_token_ids = find_prior_token_ids
 
-    chunk_candidates = get_chunk_candidates(prior_token_ids, current_word)
+    chunk_candidates = get_candidate_chunks(prior_token_ids, current_word)
 
     build_suggestions(chunk_candidates)
   end
@@ -75,17 +75,98 @@ class Suggester
   # @param prior_token_ids [Array<Integer>] array of token IDs that have been
   #                                         entered so far
   # @param current_word [String] text of the word the user is currently typing
+  # @param candidate_tokens [Array<Int>] candidate tokens that have already been found
   #
-  # @return [Hash] a hash containing word suggestions, and (optionally) some
-  #                analysis
-  def get_chunk_candidates(prior_token_ids, current_word)
-    chunks = Chunk.by_starting_token_ids(prior_token_ids)
-                  .by_current_word(current_word)
-                  .order(:count)
-                  .limit(MAX_SUGGESTIONS)
+  # @return [Array<Chunk>] I think just an array of Chunks that are candidates - not an ActiveRelation
+  def get_candidate_chunks(prior_token_ids, current_word, candidate_tokens = []) # rubocop:todo Metrics/AbcSize, Metrics/MethodLength
+    # Get chunk candidates that match the prior tokens and the current word
+    # - except those with any candidate tokens we already have.
+    first_chunks =
+      get_chunks_by_prior_tokens_and_current_word(prior_token_ids, current_word, candidate_tokens)
+      .limit(MAX_SUGGESTIONS - candidate_tokens.size)
 
-    return chunks if chunks.count == MAX_SUGGESTIONS
+    # p 'first_chunks:'
+    # p first_chunks
+    # p 'first_chunks.count:'
+    # p first_chunks.count
+    # p 'first_chunks.to_a:'
+    # p first_chunks.to_a
+
+    candidate_chunks = first_chunks.to_a
+    candidate_tokens += get_token_candidates_from_chunks(first_chunks.to_a)
+
+    # p 'candidate_tokens:'
+    # p candidate_tokens
+    # p 'candidate_tokens.count:'
+    # p candidate_tokens.count
+
+    # If we got our MAX_SUGGESTIONS, then we're done
+    return candidate_chunks if candidate_tokens.size == MAX_SUGGESTIONS
+
+    # p 'here'
+
+    # Get candidate chunks with matching prior words - except those with any
+    # candidate tokens we already have.
+    second_chunks =
+      get_chunks_by_prior_tokens(prior_token_ids, candidate_tokens)
+      .limit(MAX_SUGGESTIONS - candidate_tokens.size)
+
+    # p 'second_chunks'
+    # p second_chunks
+    # p 'second_chunks.to_a'
+    # p second_chunks.to_a
+
+    candidate_chunks += second_chunks.to_a
+
+    # p 'candidate_chunks'
+    # p candidate_chunks
+
+    candidate_tokens += get_token_candidates_from_chunks(second_chunks.to_a)
+
+    # p 'candidate_tokens'
+    # p candidate_tokens
+
+    # If we got our MAX_SUGGESTIONS or we have looked at all the prior tokens, then we're done
+    return candidate_chunks if candidate_tokens.size == MAX_SUGGESTIONS || prior_token_ids.size.zero?
+
+    # get more chunks but using less prior token ids
+    candidate_chunks << get_candidate_chunks(prior_token_ids[1..],
+                                             current_word,
+                                             candidate_tokens)
   end
+  #   chunks = Chunk.by_starting_token_ids(prior_token_ids)
+  #                 .by_current_word(current_word)
+  #                 .order(:count)
+  #                 .limit(MAX_SUGGESTIONS)
+
+  #   return chunks if chunks.count == MAX_SUGGESTIONS
+
+  #   # there were less than MAX_SUGGESTIONS in the candidates
+  #   # grab some more candidates for these prior_token_ids - but not ones
+  #   # we have already found
+  #   extra_chunks = Chunk.by_starting_token_ids(prior_token_ids)
+  #                       .where.not(id: chunks.pluck(:id))
+  #                       .order(:count)
+  #                       .limit(MAX_SUGGESTIONS)
+  # end
+
+  # Returns chunks candidates that match current user input
+  #
+  # @param prior_token_ids [Array<Integer>] array of token IDs that have been
+  #                                         entered so far
+  # @param current_word [String] text of the word the user is currently typing
+  # @param candidate_tokens [Array<Int>] candidate tokens that have already been found
+  # @return [ActiveRelation] chunks that match the search parameters
+  def get_chunks_by_prior_tokens_and_current_word(prior_token_ids, current_word, candidate_tokens); end
+
+  # Returns chunks candidates that match current user input
+  #
+  # @param prior_token_ids [Array<Integer>] array of token IDs that have been
+  #                                         entered so far
+  # @param candidate_tokens [Array<Int>] candidate tokens that have already been found
+  #
+  # @return [ActiveRelation] chunks that match the search parameters
+  def get_chunks_by_prior_tokens(prior_token_ids, candidate_tokens); end
 
   # Returns a hash of suggestions and (optionally) analysis from the best
   # chunk candidates
@@ -118,6 +199,13 @@ class Suggester
   #           { token_text: 'this', probability: 0.05 }
   #         ] }
   #     ] }
+
+  # Returns an array of final token IDs from each of the chunk_candidates
+  # @param chunk_candidates [Array<Chunk>] Chunk candidates
+  #
+  # @return [Array<Integer>]
+  def get_token_candidates_from_chunks(chunk_candidates); end
+
   def build_suggestions(chunk_candidates); end
 
   # Returns the actual suggestions of possible token completions with probabilities

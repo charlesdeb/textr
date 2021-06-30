@@ -105,7 +105,12 @@ RSpec.describe Chunk, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  describe "#by_current_word" do
-    
+  describe '#by_current_word' do
+  end
+
+  describe '#without_chunks' do
+    it 'removes chunks'
+    it 'handles no supplied chunks'
+    it 'doesn\'t remove non-existent chunks'
   end
 end

@@ -9,22 +9,25 @@ class Chunk < ApplicationRecord
   belongs_to :language
 
   scope :by_starting_token_ids, -> {}
-        # lambda { |prior_token_ids|
-        #   # return an empty relation if there are no prior_token_ids to search for
-        #   return where('true = false') if prior_token_ids.nil? || prior_token_ids.length.zero?
+  # lambda { |prior_token_ids|
+  #   # return an empty relation if there are no prior_token_ids to search for
+  #   return where('true = false') if prior_token_ids.nil? || prior_token_ids.length.zero?
 
-        #   composed_scope = self
+  #   composed_scope = self
 
-        #   prior_token_ids.each_with_index do |token_id, index|
-        #     break if index + 1 > ChunkAnalyser::CHUNK_SIZE_RANGE.max
+  #   prior_token_ids.each_with_index do |token_id, index|
+  #     break if index + 1 > ChunkAnalyser::CHUNK_SIZE_RANGE.max
 
-        #     composed_scope = composed_scope.where("token_ids[#{index + 1}] = #{token_id}")
-        #   end
+  #     composed_scope = composed_scope.where("token_ids[#{index + 1}] = #{token_id}")
+  #   end
 
-        #   composed_scope
-        # }
+  #   composed_scope
+  # }
 
   scope :by_current_word, -> {}
+
+  # returns all Chunks but without the specified chunks
+  scope :without_chunks, -> {}
 
   # helper method for converting an array of token_ids back to an array of
   # readable text
