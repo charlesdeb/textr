@@ -122,7 +122,7 @@ class Suggester
   # @param current_word [String] text of the word the user is currently typing
   # @param candidate_tokens [Array<Int>] candidate tokens that have already been found
   # @return [Array<Chunk>] chunks that match the search parameters
-  def get_chunks_by_prior_tokens(prior_token_ids, current_word, candidate_tokens)
+  def get_chunks_by_prior_tokens(prior_token_ids, current_word, candidate_tokens = [])
     # Get chunk candidates that match the prior tokens and the current word
     # - except those with any candidate tokens we already have.
     first_chunks =
