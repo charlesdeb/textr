@@ -213,4 +213,9 @@ RSpec.describe Token, type: :model do # rubocop:disable Metrics/BlockLength
       end
     end
   end
+
+  describe '::get_candidate_tokens' do
+    it 'returns candidates if there are some'
+    it 'doesn\'t returns candidates if there are none'
+  end
 end

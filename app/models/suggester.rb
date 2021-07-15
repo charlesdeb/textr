@@ -75,7 +75,7 @@ class Suggester
   # @param prior_token_ids [Array<Integer>] array of token IDs that have been
   #                                         entered so far
   # @param current_word [String] text of the word the user is currently typing
-  # @param candidate_tokens [Array<Int>] candidate tokens that have already been found.
+  # @param candidate_token_ids [Array<Int>] candidate tokens that have already been found.
   #                                      It is empty for the first call, but should get
   #                                      longer with recursive calls
   #
@@ -84,20 +84,20 @@ class Suggester
   # Get the candidate chunks for the current prior_token_ids, current_word -
   # and if we can't get MAX_SUGGESTIONS of candidates, then shorten the
   # prior token IDs and add those candidates
-  def get_candidate_chunks(prior_token_ids, current_word, candidate_tokens = [])
+  def get_candidate_chunks(prior_token_ids, current_word, candidate_token_ids = [])
     # Get chunk candidates that match the prior tokens with or without the
     # current word
 
-    candidate_chunks = get_chunks_by_prior_tokens(prior_token_ids, current_word, candidate_tokens)
-    candidate_tokens += get_token_candidates_from_chunks(candidate_chunks.to_a)
+    candidate_chunks = get_chunks_by_prior_tokens(prior_token_ids, current_word, candidate_token_ids)
+    candidate_token_ids += get_token_candidates_from_chunks(candidate_chunks.to_a)
 
     # If we got our MAX_SUGGESTIONS or we have looked at all the prior tokens, then we're done
-    return candidate_chunks if candidate_tokens.size == MAX_SUGGESTIONS || prior_token_ids.size.zero?
+    return candidate_chunks if candidate_token_ids.size == MAX_SUGGESTIONS || prior_token_ids.size.zero?
 
     # get more chunks but using less prior token ids
     candidate_chunks + get_candidate_chunks(prior_token_ids[1..],
                                             current_word,
-                                            candidate_tokens)
+                                            candidate_token_ids)
   end
   #   chunks = Chunk.by_starting_token_ids(prior_token_ids)
   #                 .by_current_word(current_word)
@@ -120,26 +120,26 @@ class Suggester
   # @param prior_token_ids [Array<Integer>] array of token IDs that have been
   #                                         entered so far
   # @param current_word [String] text of the word the user is currently typing
-  # @param candidate_tokens [Array<Int>] candidate tokens that have already been found
+  # @param candidate_token_ids [Array<Int>] candidate tokens that have already been found
   # @return [Array<Chunk>] chunks that match the search parameters
-  def get_chunks_by_prior_tokens(prior_token_ids, current_word, candidate_tokens = [])
+  def get_chunks_by_prior_tokens(prior_token_ids, current_word, candidate_token_ids = [])
     # Get chunk candidates that match the prior tokens and the current word
     # - except those with any candidate tokens we already have.
     first_chunks =
-      get_chunks_by_prior_tokens_and_current_word(prior_token_ids, current_word, candidate_tokens)
-      .limit(MAX_SUGGESTIONS - candidate_tokens.size)
+      get_chunks_by_prior_tokens_and_current_word(prior_token_ids, current_word, candidate_token_ids)
+      .limit(MAX_SUGGESTIONS - candidate_token_ids.size)
 
     candidate_chunks = first_chunks.to_a
-    candidate_tokens += get_token_candidates_from_chunks(first_chunks.to_a)
+    candidate_token_ids += get_token_candidates_from_chunks(first_chunks.to_a)
 
     # If we got our MAX_SUGGESTIONS, then we're done
-    return candidate_chunks if candidate_tokens.size == MAX_SUGGESTIONS
+    return candidate_chunks if candidate_token_ids.size == MAX_SUGGESTIONS
 
     # Get candidate chunks with matching prior words - except those with any
     # candidate tokens we already have.
     second_chunks =
-      get_chunks_by_prior_tokens_only(prior_token_ids, candidate_tokens)
-      .limit(MAX_SUGGESTIONS - candidate_tokens.size)
+      get_chunks_by_prior_tokens_only(prior_token_ids, candidate_token_ids)
+      .limit(MAX_SUGGESTIONS - candidate_token_ids.size)
 
     candidate_chunks + second_chunks.to_a
   end
@@ -149,18 +149,34 @@ class Suggester
   # @param prior_token_ids [Array<Integer>] array of token IDs that have been
   #                                         entered so far
   # @param current_word [String] text of the word the user is currently typing
-  # @param candidate_tokens [Array<Int>] candidate tokens that have already been found
+  # @param candidate_token_ids [Array<Int>] candidate tokens that have already been found
   # @return [ActiveRelation] chunks that match the search parameters
-  def get_chunks_by_prior_tokens_and_current_word(prior_token_ids, current_word, candidate_tokens); end
+  def get_chunks_by_prior_tokens_and_current_word(prior_token_ids, current_word, _candidate_token_ids = [])
+    # find all the possible
+    candidate_tokens_for_current_word = Token.get_candidate_tokens(current_word)
+
+    candidate_token_ids_for_current_word = candidate_tokens_for_current_word.to_a.map(&:id)
+
+    token_id_where_clause = candidate_token_ids_for_current_word.map do |token_id|
+      "token_ids = ARRAY#{prior_token_ids + [token_id]}"
+    end
+
+    token_id_where_clause = token_id_where_clause.join(' OR ')
+
+    # p token_id_where_clause
+
+    Chunk.where("language_id = :language_id AND ( #{token_id_where_clause} )",
+                language_id: @language_id)
+  end
 
   # Returns chunks candidates that match current user input
   #
   # @param prior_token_ids [Array<Integer>] array of token IDs that have been
   #                                         entered so far
-  # @param candidate_tokens [Array<Int>] candidate tokens that have already been found
+  # @param candidate_token_ids [Array<Int>] candidate tokens that have already been found
   #
   # @return [ActiveRelation] chunks that match the search parameters
-  def get_chunks_by_prior_tokens_only(prior_token_ids, candidate_tokens); end
+  def get_chunks_by_prior_tokens_only(prior_token_ids, candidate_token_ids); end
 
   # Returns a hash of suggestions and (optionally) analysis from the best
   # chunk candidates
@@ -227,13 +243,13 @@ class Suggester
     suggestions
   end
 
-  # Finds candidate completion words based on the current word and priorr tokens
+  # Finds candidate completion words based on the current word and prior tokens
   # @param current_word [String] The word the user is currently typing
   # @param prior_token_ids [Array<Integer>] IDs of the tokens for the words the user typed before the current word
   # @return [Array<Hash{token_text=>String, probability=>Float, chunk_size=>Integer}>]
   def suggestions_by_current_word_and_prior_token_ids(current_word, prior_token_ids); end
 
-  # Finds candidate completion words based on the current word and priorr tokens
+  # Finds candidate completion words based on the current word and prior tokens
   # @param token_ids [Array<Integer>] IDs of the tokens for the words the user typed before the current word
   # @return [Array<Hash{token_text=>String, probability=>Float, chunk_size=>Integer}>]
   def chunks_by_starting_tokens(token_ids); end

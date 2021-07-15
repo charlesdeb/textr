@@ -107,4 +107,9 @@ class Token < ApplicationRecord
 
     end
   end
+
+  # turns all tokens that start with the starting text
+  # @param starting_text [String]
+  # @return [ActiveRelation]
+  def self.get_candidate_tokens(starting_text); end
 end

@@ -37,8 +37,6 @@ RSpec.describe Chunk, type: :model do # rubocop:disable Metrics/BlockLength
       Token.create!({ id: 2, text: 'a' })
       Token.create!({ id: 3, text: 't' })
       Token.create!({ id: 4, text: 'h' })
-      # Token.create!({ id: 5, text: 'e' })
-      # Token.create!({ id: 6, text: ' ' })
 
       ## 2 x ca, 4 x cat, 4 x cath, 1 x c_the, 1 x cat_, 1 x cath_
       # texts = %w[ca ca cat cat cat cat cath cath cath cath 'c the']
