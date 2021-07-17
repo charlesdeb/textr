@@ -214,8 +214,33 @@ RSpec.describe Token, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  describe '::get_candidate_tokens' do
-    it 'returns candidates if there are some'
-    it 'doesn\'t returns candidates if there are none'
+  describe '::starting_with' do
+    let!(:token_hat) { create(:token, text: 'hat') }
+    let!(:token_ham) { create(:token, text: 'ham') }
+    let!(:token_has) { create(:token, text: 'has') }
+    let!(:token_hit) { create(:token, text: 'hit') }
+    let!(:token_ha) { create(:token,  text: 'ha') }
+
+    it 'returns tokens if there are some' do
+      result = Token.starting_with('ha')
+
+      expect(result.length).to eq(4)
+      expect(result).to include(token_ham)
+      expect(result).to include(token_has)
+      expect(result).to include(token_hat)
+      expect(result).to include(token_ha)
+    end
+
+    it 'returns empty relation if starting_text is null' do
+      starting_texts = ['', nil]
+
+      starting_texts.each { |starting_text| expect(Token.starting_with(starting_text)).to eq(Token.none) }
+    end
+
+    it 'doesn\'t returns tokens if there are none' do
+      result = Token.starting_with('zoobie')
+
+      expect(result.length).to eq(0)
+    end
   end
 end

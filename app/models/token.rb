@@ -108,8 +108,12 @@ class Token < ApplicationRecord
     end
   end
 
-  # turns all tokens that start with the starting text
+  # Returns all tokens that start with the starting text
   # @param starting_text [String]
   # @return [ActiveRelation]
-  def self.get_candidate_tokens(starting_text); end
+  def self.starting_with(starting_text)
+    return Token.none if starting_text.blank?
+
+    Token.where('text LIKE (?)', "#{starting_text}%")
+  end
 end

@@ -61,7 +61,7 @@ class Suggester
   # Creates tokens if needed for any new words
   def find_prior_token_ids
     max_tokens_to_return = ChunkAnalyser::CHUNK_SIZE_RANGE.max - 1
-    # get the tokens ids except for the last token
+    # get the token ids except for the last token
     token_ids = Token.id_ise(@text, :by_word)[0..-2]
 
     # return (at most) the most recent 8 of those tokens
@@ -155,7 +155,7 @@ class Suggester
   # Returns empty relation if the current word doesn't match any known tokens
   def get_chunks_by_prior_tokens_and_current_word(prior_token_ids, current_word, _candidate_token_ids = [])
     # find all the possible
-    candidate_tokens_for_current_word = Token.get_candidate_tokens(current_word)
+    candidate_tokens_for_current_word = Token.starting_with(current_word)
 
     return Chunk.none if candidate_tokens_for_current_word.empty?
 

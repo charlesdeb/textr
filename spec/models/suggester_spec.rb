@@ -50,7 +50,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       end
     end
 
-    context 'when text is not empty' do # rubocop:disable Metrics/BlockLength
+    context 'when text is not empty' do
       let(:suggester) { Suggester.new(params) }
 
       before(:each) do
@@ -73,12 +73,6 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
 
       it 'gets chunk candidates' do
         expect(suggester).to receive(:get_candidate_chunks)
-
-        suggester.suggest
-      end
-
-      it 'builds suggestions' do
-        expect(suggester).to receive(:build_suggestions)
 
         suggester.suggest
       end
@@ -512,7 +506,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
 
     it 'looks for token candidates for the current word' do
       current_word = 'ha'
-      expect(Token).to receive(:get_candidate_tokens).with(current_word)
+      expect(Token).to receive(:starting_with).with(current_word)
 
       suggester.get_chunks_by_prior_tokens_and_current_word([1, 2, 10], current_word)
     end
@@ -525,7 +519,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       let(:current_word) { 'ha' }
 
       before(:each) do
-        allow(Token).to receive(:get_candidate_tokens).and_return(candidate_tokens_for_current_word)
+        allow(Token).to receive(:starting_with).and_return(candidate_tokens_for_current_word)
       end
 
       it 'returns chunks if there are some matching candidates' do
@@ -560,7 +554,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
 
         it 'the current_word doesn\'t match any known tokens' do
           current_word = 'zop'
-          allow(Token).to receive(:get_candidate_tokens).and_return([])
+          allow(Token).to receive(:starting_with).and_return([])
 
           chunks = suggester
                    .get_chunks_by_prior_tokens_and_current_word(
@@ -573,7 +567,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
         it 'there are no chunks ending with the current_word' do
           token_hasten = create(:token, id: 15, text: 'hasten')
           allow(Token)
-            .to receive(:get_candidate_tokens)
+            .to receive(:starting_with)
             .and_return([token_hasten])
 
           chunks = suggester
