@@ -503,9 +503,9 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     let!(:token_hit) { create(:token, id: 13, text: 'hit') }
     let!(:token_ha) { create(:token, id: 14, text: 'ha') }
 
-    let!(:chunk1) { create(:chunk, language: language, token_ids: [1, 2, 10]) }
-    let!(:chunk2) { create(:chunk, language: language, token_ids: [1, 2, 11]) }
-    let!(:chunk3) { create(:chunk, language: language, token_ids: [1, 2, 12]) }
+    let!(:chunk1) { create(:chunk, language: language, count: 5, token_ids: [1, 2, 10]) }
+    let!(:chunk2) { create(:chunk, language: language, count: 10, token_ids: [1, 2, 11]) }
+    let!(:chunk3) { create(:chunk, language: language, count: 15, token_ids: [1, 2, 12]) }
     let!(:chunk4) { create(:chunk, language: language, token_ids: [1, 2, 13]) }
 
     let(:suggester) { Suggester.new(params) }
@@ -517,17 +517,18 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       suggester.get_chunks_by_prior_tokens_and_current_word([1, 2, 10], current_word)
     end
 
-    context 'when no candidate token ids' do
+    context 'when no candidate token ids' do # rubocop:disable Metrics/BlockLength
       let(:candidate_token_ids) { [] }
-      let(:candidate_tokens_for_current_word) { double('Some tokens', to_a: [token_hat, token_ham, token_has]) }
+      # let(:candidate_tokens_for_current_word) { double('Some tokens', to_a: [token_hat, token_ham, token_has]) }
+      let(:candidate_tokens_for_current_word) { [token_hat, token_ham, token_has] }
+      let(:prior_token_ids) { [1, 2] }
+      let(:current_word) { 'ha' }
 
       before(:each) do
         allow(Token).to receive(:get_candidate_tokens).and_return(candidate_tokens_for_current_word)
       end
 
-      it 'returns chunks if there are some' do
-        prior_token_ids = [1, 2]
-        current_word = 'ha'
+      it 'returns chunks if there are some matching candidates' do
         chunks = suggester
                  .get_chunks_by_prior_tokens_and_current_word(
                    prior_token_ids, current_word, candidate_token_ids
@@ -536,9 +537,52 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
         expect(chunks.length).to eq(3)
       end
 
-      context 'doesn\'t return chunks if there are none' do
-        it 'because there are no matching prior_token_ids'
-        it 'because there are no matching tokens for the current_word'
+      it 'returns chunks in the right order' do
+        chunks = suggester
+                 .get_chunks_by_prior_tokens_and_current_word(
+                   prior_token_ids, current_word, candidate_token_ids
+                 )
+
+        expect(chunks.first.count).to be > chunks.last.count
+      end
+
+      context 'doesn\'t return chunks if' do # rubocop:disable Metrics/BlockLength
+        it 'there are no matching prior_token_ids' do
+          prior_token_ids = [100, 200]
+
+          chunks = suggester
+                   .get_chunks_by_prior_tokens_and_current_word(
+                     prior_token_ids, current_word, candidate_token_ids
+                   )
+
+          expect(chunks.length).to eq(0)
+        end
+
+        it 'the current_word doesn\'t match any known tokens' do
+          current_word = 'zop'
+          allow(Token).to receive(:get_candidate_tokens).and_return([])
+
+          chunks = suggester
+                   .get_chunks_by_prior_tokens_and_current_word(
+                     prior_token_ids, current_word, candidate_token_ids
+                   )
+
+          expect(chunks.length).to eq(0)
+        end
+
+        it 'there are no chunks ending with the current_word' do
+          token_hasten = create(:token, id: 15, text: 'hasten')
+          allow(Token)
+            .to receive(:get_candidate_tokens)
+            .and_return([token_hasten])
+
+          chunks = suggester
+                   .get_chunks_by_prior_tokens_and_current_word(
+                     prior_token_ids, current_word, candidate_token_ids
+                   )
+
+          expect(chunks.length).to eq(0)
+        end
       end
     end
 

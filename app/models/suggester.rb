@@ -144,16 +144,20 @@ class Suggester
     candidate_chunks + second_chunks.to_a
   end
 
-  # Returns chunks candidates that match current user input
+  # Returns chunks candidates that match current user input ordered by occurrence
   #
   # @param prior_token_ids [Array<Integer>] array of token IDs that have been
   #                                         entered so far
   # @param current_word [String] text of the word the user is currently typing
   # @param candidate_token_ids [Array<Int>] candidate tokens that have already been found
   # @return [ActiveRelation] chunks that match the search parameters
+  #
+  # Returns empty relation if the current word doesn't match any known tokens
   def get_chunks_by_prior_tokens_and_current_word(prior_token_ids, current_word, _candidate_token_ids = [])
     # find all the possible
     candidate_tokens_for_current_word = Token.get_candidate_tokens(current_word)
+
+    return Chunk.none if candidate_tokens_for_current_word.empty?
 
     candidate_token_ids_for_current_word = candidate_tokens_for_current_word.to_a.map(&:id)
 
@@ -163,10 +167,9 @@ class Suggester
 
     token_id_where_clause = token_id_where_clause.join(' OR ')
 
-    # p token_id_where_clause
-
     Chunk.where("language_id = :language_id AND ( #{token_id_where_clause} )",
                 language_id: @language_id)
+         .order(count: :desc)
   end
 
   # Returns chunks candidates that match current user input
