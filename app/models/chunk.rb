@@ -24,10 +24,10 @@ class Chunk < ApplicationRecord
   #   composed_scope
   # }
 
-  scope :by_current_word, -> {}
-
-  # returns all Chunks but without the specified chunks
-  scope :without_chunks, -> {}
+  scope :exclude_candidate_token_ids, lambda { |token_ids, array_position|
+    token_ids_list = token_ids.join(', ')
+    where("token_ids[#{array_position}] NOT IN (#{token_ids_list})") unless token_ids.empty?
+  }
 
   # helper method for converting an array of token_ids back to an array of
   # readable text

@@ -78,6 +78,30 @@ RSpec.describe Chunk, type: :model do # rubocop:disable Metrics/BlockLength
     it 'sets probabilties properly'
   end
 
+  describe '#exclude_candidate_token_ids (scope)' do
+    let(:language) { create(:language, language: 'Klingon') }
+
+    before(:each) do
+      create(:chunk, token_ids: [1, 2, 3], language_id: language.id)
+      create(:chunk, token_ids: [1, 2, 4], language_id: language.id)
+    end
+
+    it 'excludes token_ids that exist' do
+      token_ids = [3]
+      expect(Chunk.all.count).to eq(2)
+
+      chunks = Chunk.exclude_candidate_token_ids(token_ids, 3)
+
+      expect(chunks.count).to eq(1)
+    end
+
+    it 'doesn\'t exclude anything if token_ids is empty' do
+      token_ids = []
+      chunks = Chunk.exclude_candidate_token_ids(token_ids, 3)
+      expect(chunks.count).to eq(2)
+    end
+  end
+
   describe '#by_starting_token_ids' do
     let(:prior_token_ids) { [1, 2, 3] }
     let!(:chunk) { create(:chunk, token_ids: [1, 2, 3, 4]) }

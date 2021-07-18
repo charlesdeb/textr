@@ -67,13 +67,17 @@ class Suggester # rubocop:disable Metrics/ClassLength
   # Creates tokens if needed for any new words
   def find_prior_token_ids
     max_tokens_to_return = ChunkAnalyser::CHUNK_SIZE_RANGE.max - 1
+
     # get the token ids except for the last token
-    token_ids = Token.id_ise(@text, :by_word)[0..-2]
+    prior_token_text = Token.split_into_token_texts(@text)[0..-2].join
+    puts ">#{prior_token_text}<"
+    token_ids = Token.id_ise(prior_token_text, :by_word)
 
     # return (at most) the most recent 8 of those tokens
-    token_ids = token_ids[(token_ids.length > max_tokens_to_return ? -max_tokens_to_return : (-1 - (token_ids.length - 1)))..]
+    # token_ids =
+    token_ids[(token_ids.length > max_tokens_to_return ? -max_tokens_to_return : (-1 - (token_ids.length - 1)))..]
 
-    token_ids.empty? ? nil : token_ids
+    # token_ids.empty? ? nil : token_ids
   end
 
   # Returns best chunk candidates that match current user input
@@ -174,17 +178,16 @@ class Suggester # rubocop:disable Metrics/ClassLength
 
     candidate_token_ids_for_current_word = candidate_tokens_for_current_word.to_a.map(&:id)
 
-    # remove any tokens we have found before, so we don't want to find them again
-    candidate_token_ids_for_current_word -= candidate_token_ids
-
-    token_id_where = candidate_token_ids_for_current_word.map do |token_id|
+    token_ids_where = candidate_token_ids_for_current_word.map do |token_id|
       "token_ids = ARRAY#{prior_token_ids + [token_id]}"
     end
+    token_ids_where = token_ids_where.join(' OR ')
 
-    token_id_where = token_id_where.join(' OR ')
+    token_ids_where = " AND (#{token_ids_where} )" unless token_ids_where.blank?
 
-    Chunk.where("language_id = :language_id AND ( #{token_id_where} )",
+    Chunk.where("language_id = :language_id #{token_ids_where}",
                 language_id: @language_id)
+         .exclude_candidate_token_ids(candidate_token_ids, prior_token_ids.length + 1)
          .order(count: :desc)
   end
 
@@ -196,20 +199,29 @@ class Suggester # rubocop:disable Metrics/ClassLength
   #
   # @return [ActiveRelation] chunks that match the search parameters
   def get_chunks_by_prior_tokens_only(prior_token_ids, candidate_token_ids = [])
-    prior_token_ids_where = prior_token_ids.map.with_index do |token_id, index|
+    return Chunk.none if prior_token_ids.empty?
+
+    token_ids_where = prior_token_ids.map.with_index do |token_id, index|
       "token_ids[#{index + 1}] = #{token_id}"
     end
 
-    # don't include chunks that have already been found
-    exclude_token_id_where = candidate_token_ids.map do |token_id|
-      "token_ids[#{prior_token_ids.length + 1}] != #{token_id}"
-    end
+    # p token_ids_where
 
-    token_ids_where = (prior_token_ids_where + exclude_token_id_where).join(' AND ')
+    token_ids_where = " AND #{token_ids_where.join(' AND ')}" unless token_ids_where.empty?
 
-    Chunk.where("language_id = :language_id AND size = :size AND #{token_ids_where}",
+    Chunk.where("language_id = :language_id AND size = :size #{token_ids_where}",
                 language_id: @language_id,
                 size: prior_token_ids.length + 1)
+         .exclude_candidate_token_ids(candidate_token_ids, prior_token_ids.length + 1)
+         .order(count: :desc)
+  end
+
+  # Returns an array of final token IDs from each of the chunk_candidates
+  # @param chunk_candidates [Array<Chunk>] Chunk candidates
+  #
+  # @return [Array<Integer>]
+  def get_token_id_candidates_from_chunks(chunk_candidates)
+    chunk_candidates.map { |chunk| chunk.token_ids[chunk.size - 1] }
   end
 
   # Returns a hash of suggestions and (optionally) analysis from the best
@@ -243,16 +255,15 @@ class Suggester # rubocop:disable Metrics/ClassLength
   #           { token_text: 'this', probability: 0.05 }
   #         ] }
   #     ] }
+  def build_suggestions(chunk_candidates)
+    candidates_array = chunk_candidates.map do |chunk|
+      token_id = chunk.token_ids[chunk.size - 1]
+      text = Token.find(token_id).text
+      { token_text: text, chunk_size: chunk.size, count: chunk.count }
+    end
 
-  # Returns an array of final token IDs from each of the chunk_candidates
-  # @param chunk_candidates [Array<Chunk>] Chunk candidates
-  #
-  # @return [Array<Integer>]
-  def get_token_id_candidates_from_chunks(chunk_candidates)
-    chunk_candidates.map { |chunk| chunk.token_ids[chunk.size - 1] }
+    { candidates: candidates_array }
   end
-
-  def build_suggestions(chunk_candidates); end
 
   # Returns the actual suggestions of possible token completions with probabilities
   # @param prior_token_ids [Array<Token>] Tokens representing what the user has already entered before the current word

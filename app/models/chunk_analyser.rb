@@ -2,7 +2,7 @@
 
 # Used for analysting text_messages using a chunk algorithm
 class ChunkAnalyser
-  CHUNK_SIZE_RANGE = (2..8)
+  CHUNK_SIZE_RANGE = (1..8)
 
   def initialize(text_message)
     @text_message = text_message

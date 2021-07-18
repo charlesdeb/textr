@@ -3,7 +3,7 @@
 <% else %>
   <ul>
     <% @candidates.each do |candidate| %>
-      <li class='candidate'><%= candidate[:token_text] %> &nbsp;(<%= number_to_percentage(candidate[:probability] * 100, precision: 0) %>)</li>
+      <li class='candidate'><%= candidate[:token_text] %> &nbsp;(count: <%= candidate[:count]  %>)</li>
     <% end %>
   </ul>
 <% end %>

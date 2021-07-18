@@ -57,6 +57,8 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
         allow(suggester)
           .to receive(:get_candidate_chunks)
           .and_return('some candidates')
+        allow(suggester)
+          .to receive(:build_suggestions)
       end
 
       it 'finds latest word being typed' do
@@ -183,7 +185,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
 
     it 'returns the prior tokens' do
       texts_and_expectations = [
-        { text: 'the', expected_token_ids: nil },
+        { text: 'the', expected_token_ids: [] },
         { text: 'the   ', expected_token_ids: [1] }, # spaces at the end]
         { text: 'the ca', expected_token_ids: [1, 2] },
         { text: 'the cat', expected_token_ids: [1, 2] },
@@ -220,6 +222,29 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
         .to eq(max_tokens_to_return)
       expect(prior_token_ids)
         .to eq([2, 3, 2, 4, 2, 1, 2]) # ' cat in the '
+    end
+
+    it 'doesn\'t add the current word to the table of tokens' do
+      params[:text] = 'the rain'
+      suggester = Suggester.new(params)
+      suggester.find_prior_token_ids
+
+      p Token.all
+
+      expect(Token.all.count).to eq(5)
+
+      token_texts = Token.all.map(&:text)
+      expect(token_texts).to_not include('rain')
+    end
+
+    it 'returns empty array if there are no prior token ids' do
+      params[:text] = 'the'
+      suggester = Suggester.new(params)
+      result = suggester.find_prior_token_ids
+
+      p result
+
+      expect(result).to be_empty
     end
   end
 
@@ -487,7 +512,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  context 'real get_chunk_x methods (that hit the database) ' do # rubocop:disable Metrics/BlockLength
+  context 'chunk methods that need chunks from the database' do # rubocop:disable Metrics/BlockLength
     let!(:token_the) { create(:token, id: 1, text: 'the') }
     let!(:token_space) { create(:token, id: 2, text: ' ') }
 
@@ -618,8 +643,15 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       end
     end
 
-    describe '.get_chunks_by_prior_tokens_only' do
+    describe '.get_chunks_by_prior_tokens_only' do # rubocop:disable Metrics/BlockLength
       let(:prior_token_ids) { [1, 2] }
+
+      it 'handles no prior_token_ids' do
+        prior_token_ids = []
+        chunks = suggester.get_chunks_by_prior_tokens_only(prior_token_ids)
+
+        expect(chunks.length).to eq(0)
+      end
 
       context 'when no candidate token IDs' do
         it 'returns chunk candidates' do
@@ -685,10 +717,43 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
         expect(token_ids.length).to eq(0)
       end
     end
-  end
 
-  describe '.build_suggestions' do
-    it ''
+    describe '.build_suggestions' do # rubocop:disable Metrics/BlockLength
+      let(:suggester) { Suggester.new(params) }
+
+      let!(:longer_chunk) { create(:chunk, language: language, count: 2, token_ids: [1, 2, 10, 2], size: 4) }
+      let(:chunk_candidates) do
+        [longer_chunk, chunk_ending_in_hat, chunk2, chunk3, chunk4, chunk5]
+      end
+
+      describe 'the candidates hash' do
+        it 'contains a hash of the candidates' do
+          result = suggester.build_suggestions(chunk_candidates)
+          expect(result).to include(:candidates)
+        end
+
+        it 'has the expected number of candidates' do
+          result = suggester.build_suggestions(chunk_candidates)[:candidates]
+
+          expect(result.length).to eq(chunk_candidates.length)
+        end
+
+        it 'is ordered by chunk size' do
+          result = suggester.build_suggestions(chunk_candidates)[:candidates]
+
+          expect(result.first).to eq({ token_text: ' ', chunk_size: longer_chunk.size, count: 2 })
+          expect(result.last).to eq({ token_text: 'hit', chunk_size: chunk5.size, count: 1 })
+        end
+
+        it 'contains probabilities' do
+          pending
+          result = suggester.build_suggestions(chunk_candidates)[:candidates]
+          expect(result.first[:probability]).to eq(longer_chunk)
+        end
+      end
+      context 'analysis is also wanted' do
+      end
+    end
   end
 
   describe '.get_suggestions' do

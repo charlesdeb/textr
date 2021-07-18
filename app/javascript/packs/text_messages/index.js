@@ -14,12 +14,17 @@ $(function () {
       type: 'GET',
       // dataType: 'json',
       // data: JSON.stringify({ current_message }),
-      data: new URLSearchParams({ text, language_id, show_analysis }).toString(),
+      data: new URLSearchParams({
+        text,
+        language_id,
+        show_analysis,
+      }).toString(),
       success: function (data) {
         console.log('back from suggestions with succes');
       },
       error: function (data) {
-        // console.log('back from suggestions with error');
+        console.log('something went wrong');
+        console.error(data);
       },
     });
   });
