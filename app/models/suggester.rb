@@ -30,8 +30,8 @@ class Suggester # rubocop:disable Metrics/ClassLength
 
     chunk_candidates = get_candidate_chunks(prior_token_ids, current_word)
 
-    puts 'candidate_chunks:'
-    p chunk_candidates
+    # puts 'candidate_chunks:'
+    # p chunk_candidates
 
     build_suggestions(chunk_candidates)
   end
@@ -40,7 +40,9 @@ class Suggester # rubocop:disable Metrics/ClassLength
   #
   # @return [String] nil if the user has just typed a space
   def find_current_word
-    Token.split_into_token_texts(@text, :by_word)[-1]
+    result = Token.split_into_token_texts(@text, :by_word)[-1]
+
+    (result == ' ' ? nil : result)
   end
 
   # OBSOLETE
@@ -64,20 +66,23 @@ class Suggester # rubocop:disable Metrics/ClassLength
   #
   # @return [Array<Integer>] nil if the user is entering their first word
   #
-  # Creates tokens if needed for any new words
+  # Creates tokens if needed for any new words. If the user is entering spaces
+  # then this counts as the space token
   def find_prior_token_ids
     max_tokens_to_return = ChunkAnalyser::CHUNK_SIZE_RANGE.max - 1
 
-    # get the token ids except for the last token
-    prior_token_text = Token.split_into_token_texts(@text)[0..-2].join
-    puts ">#{prior_token_text}<"
+    # get the token ids
+    prior_token_text = Token.split_into_token_texts(@text)
+
+    # remove last piece of text, unless it's a space
+    # todo: add a is_whitespace methdd somewhere
+    prior_token_text = prior_token_text[0..-2] unless prior_token_text[-1] == ' ' || prior_token_text[-1] == '.' || prior_token_text[-1] == ','
+
+    prior_token_text = prior_token_text.join
     token_ids = Token.id_ise(prior_token_text, :by_word)
 
     # return (at most) the most recent 8 of those tokens
-    # token_ids =
     token_ids[(token_ids.length > max_tokens_to_return ? -max_tokens_to_return : (-1 - (token_ids.length - 1)))..]
-
-    # token_ids.empty? ? nil : token_ids
   end
 
   # Returns best chunk candidates that match current user input
@@ -98,10 +103,10 @@ class Suggester # rubocop:disable Metrics/ClassLength
     # Get chunk candidates that match the prior tokens with or without the
     # current word
 
-    puts 'in get_candidate_chunks'
-    p prior_token_ids
-    p current_word
-    p candidate_token_ids
+    # puts 'in get_candidate_chunks'
+    # p prior_token_ids
+    # p current_word
+    # p candidate_token_ids
 
     candidate_chunks = get_chunks_by_prior_tokens(prior_token_ids, current_word, candidate_token_ids)
     candidate_token_ids += get_token_id_candidates_from_chunks(candidate_chunks.to_a)

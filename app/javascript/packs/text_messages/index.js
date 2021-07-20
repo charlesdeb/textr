@@ -20,7 +20,7 @@ $(function () {
         show_analysis,
       }).toString(),
       success: function (data) {
-        console.log('back from suggestions with succes');
+        // console.log('back from suggestions with succes');
       },
       error: function (data) {
         console.log('something went wrong');

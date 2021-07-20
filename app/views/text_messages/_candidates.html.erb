@@ -3,7 +3,7 @@
 <% else %>
   <ul>
     <% @candidates.each do |candidate| %>
-      <li class='candidate'><%= candidate[:token_text] %> &nbsp;(count: <%= candidate[:count]  %>)</li>
+      <li class='candidate'><%= candidate[:token_text] %> &nbsp;(count: <%= candidate[:count]  %>, chunk size: <%= candidate[:chunk_size]%>)</li>
     <% end %>
   </ul>
 <% end %>

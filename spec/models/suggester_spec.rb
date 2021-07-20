@@ -103,7 +103,8 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
         params[:text] = text
         suggester = Suggester.new(params)
         current_word = suggester.find_current_word
-        expect(current_word).to eq(' '), "expected ' ', got '#{current_word}' from input of '#{text}'"
+        # expect(current_word).to eq(' '), "expected ' ', got '#{current_word}' from input of '#{text}'"
+        expect(current_word).to eq(nil), "expected nil, got '#{current_word}' from input of '#{text}'"
       end
     end
 
@@ -186,10 +187,10 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     it 'returns the prior tokens' do
       texts_and_expectations = [
         { text: 'the', expected_token_ids: [] },
-        { text: 'the   ', expected_token_ids: [1] }, # spaces at the end]
+        { text: 'the   ', expected_token_ids: [1, 2] }, # spaces at the end
         { text: 'the ca', expected_token_ids: [1, 2] },
         { text: 'the cat', expected_token_ids: [1, 2] },
-        { text: 'the cat ', expected_token_ids: [1, 2, 3] }
+        { text: 'the cat ', expected_token_ids: [1, 2, 3, 2] }
       ]
       texts_and_expectations.each do |text_and_expectation|
         params[:text] = text_and_expectation[:text]
