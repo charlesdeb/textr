@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'string'
+
 # Used for suggesting words based to a user
 class Suggester # rubocop:disable Metrics/ClassLength
   # Maximum number of suggestions to show the user
@@ -68,15 +70,17 @@ class Suggester # rubocop:disable Metrics/ClassLength
   #
   # Creates tokens if needed for any new words. If the user is entering spaces
   # then this counts as the space token
+  using Refinements
+
   def find_prior_token_ids
     max_tokens_to_return = ChunkAnalyser::CHUNK_SIZE_RANGE.max - 1
 
     # get the token ids
     prior_token_text = Token.split_into_token_texts(@text)
 
-    # remove last piece of text, unless it's a space
-    # todo: add a is_whitespace methdd somewhere
-    prior_token_text = prior_token_text[0..-2] unless prior_token_text[-1] == ' ' || prior_token_text[-1] == '.' || prior_token_text[-1] == ','
+    # remove last piece of text, unless it's a space or punctuation
+    last_token_text = prior_token_text[-1]
+    prior_token_text = prior_token_text[0..-2] unless last_token_text.punctuation? || last_token_text.whitespace?
 
     prior_token_text = prior_token_text.join
     token_ids = Token.id_ise(prior_token_text, :by_word)
