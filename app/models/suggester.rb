@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# require 'app/refinements/string.rb'
 require 'string'
 
 # Used for suggesting words based to a user
@@ -123,21 +124,6 @@ class Suggester # rubocop:disable Metrics/ClassLength
                                             current_word,
                                             candidate_token_ids)
   end
-  #   chunks = Chunk.by_starting_token_ids(prior_token_ids)
-  #                 .by_current_word(current_word)
-  #                 .order(:count)
-  #                 .limit(MAX_SUGGESTIONS)
-
-  #   return chunks if chunks.count == MAX_SUGGESTIONS
-
-  #   # there were less than MAX_SUGGESTIONS in the candidates
-  #   # grab some more candidates for these prior_token_ids - but not ones
-  #   # we have already found
-  #   extra_chunks = Chunk.by_starting_token_ids(prior_token_ids)
-  #                       .where.not(id: chunks.pluck(:id))
-  #                       .order(:count)
-  #                       .limit(MAX_SUGGESTIONS)
-  # end
 
   # Returns chunk candidates that match current user input, first by current word
   #

@@ -8,22 +8,6 @@ class Chunk < ApplicationRecord
 
   belongs_to :language
 
-  scope :by_starting_token_ids, -> {}
-  # lambda { |prior_token_ids|
-  #   # return an empty relation if there are no prior_token_ids to search for
-  #   return where('true = false') if prior_token_ids.nil? || prior_token_ids.length.zero?
-
-  #   composed_scope = self
-
-  #   prior_token_ids.each_with_index do |token_id, index|
-  #     break if index + 1 > ChunkAnalyser::CHUNK_SIZE_RANGE.max
-
-  #     composed_scope = composed_scope.where("token_ids[#{index + 1}] = #{token_id}")
-  #   end
-
-  #   composed_scope
-  # }
-
   scope :exclude_candidate_token_ids, lambda { |token_ids, array_position|
     token_ids_list = token_ids.join(', ')
     where("token_ids[#{array_position}] NOT IN (#{token_ids_list})") unless token_ids.empty?
