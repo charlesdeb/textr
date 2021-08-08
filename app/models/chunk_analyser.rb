@@ -13,7 +13,8 @@ class ChunkAnalyser
   #                different strategies
   def analyse
     output = {}
-    # %i[by_letter by_word].each do |strategy|
+    # we no longer need to analyse by word
+    # %i[by_letter by_word].each do |strategy| 
     %i[by_word].each do |strategy|
       start_time = Time.now
       token_ids = Token.id_ise(@text_message.text, strategy)
