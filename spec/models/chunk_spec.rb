@@ -29,7 +29,7 @@ RSpec.describe Chunk, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  describe '#chunks_by_starting_tokens' do
+  describe '#by_starting_tokens' do
     let(:language) { create(:language, language: 'Klingon') }
 
     it 'finds all the chunks without punctuation that start with these tokens' do
@@ -53,10 +53,10 @@ RSpec.describe Chunk, type: :model do # rubocop:disable Metrics/BlockLength
         analyser.analyse_by_tokens(token_ids)
       end
 
-      puts "TextMessage.count: #{TextMessage.count}"
+      # puts "TextMessage.count: #{TextMessage.count}"
+      # puts "Chunk.count: #{Chunk.count}"
+      # puts 'Chunk.all:'
 
-      puts "Chunk.count: #{Chunk.count}"
-      puts 'Chunk.all:'
       # Chunk.all.each do |chunk|
       #   p chunk
       #   # p "#{chunk} #{chunk.token_ids}"

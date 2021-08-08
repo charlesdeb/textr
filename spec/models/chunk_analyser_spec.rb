@@ -24,8 +24,7 @@ RSpec.describe ChunkAnalyser, type: :model do # rubocop:disable Metrics/BlockLen
     end
 
     describe 'breaks the text message into tokens' do
-      it 'that are single characters' do
-        pending 'we don\'t need to analyse by letter'
+      it 'that are single characters', skip: 'we don\'t need to analyse by letter' do
         analyser.analyse
 
         expect(Token).to have_received(:id_ise).with(text_message.text, :by_letter)
@@ -49,8 +48,7 @@ RSpec.describe ChunkAnalyser, type: :model do # rubocop:disable Metrics/BlockLen
     describe 'returns a hash for analysis results' do
       let(:output) { analyser.analyse }
 
-      it 'by letter' do
-        pending 'we don\'t need to analyse by letter'
+      it 'by letter', skip: 'we don\'t need to analyse by letter' do
         expect(output).to include(:by_letter)
         expect(output[:by_letter]).to include(:chunks)
         expect(output[:by_letter][:chunks]).to eq(token_ids.length)

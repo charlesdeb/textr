@@ -23,7 +23,7 @@ class Suggester # rubocop:disable Metrics/ClassLength
   def suggest
     if @text.strip.empty?
       output = { candidates: [] }
-      output[:analysis] = 'No text provided' if @show_analysis
+      output[:analysis] = 'No input text provided' if @show_analysis
       return output
     end
 
@@ -65,14 +65,15 @@ class Suggester # rubocop:disable Metrics/ClassLength
       .map(&:id)
   end
 
+  # add the .punctuation? and .whitespace? methods
+  using Refinements
+
   # Finds the last 8 token IDs of the tokens in @text
   #
   # @return [Array<Integer>] nil if the user is entering their first word
   #
   # Creates tokens if needed for any new words. If the user is entering spaces
   # then this counts as the space token
-  using Refinements
-
   def find_prior_token_ids
     max_tokens_to_return = ChunkAnalyser::CHUNK_SIZE_RANGE.max - 1
 
@@ -83,6 +84,9 @@ class Suggester # rubocop:disable Metrics/ClassLength
     last_token_text = prior_token_text[-1]
     prior_token_text = prior_token_text[0..-2] unless last_token_text.punctuation? || last_token_text.whitespace?
 
+    # add any new tokens just found to the database
+    # TODO: we only need to do this if the user has just entered a space or
+    # punctuation
     prior_token_text = prior_token_text.join
     token_ids = Token.id_ise(prior_token_text, :by_word)
 
@@ -260,14 +264,6 @@ class Suggester # rubocop:disable Metrics/ClassLength
     { candidates: candidates_array }
   end
 
-  # Returns the actual suggestions of possible token completions with probabilities
-  # @param prior_token_ids [Array<Token>] Tokens representing what the user has already entered before the current word
-  # @param possible_token_ids [Array<Token>] Tokens that could match the last word user
-  #
-  def get_suggestions(_prior_token_ids, _possible_token_ids)
-    # { candidates: [{ token_text: 'stuff', probability: 0.5 }] }
-  end
-
   # Finds suggestions of completion words based solely on the current word
   # @param current_word [String] The word the user is currently typing
   # @return [Array<Hash{token_text=>String, probability=>Float, chunk_size=>Integer}>]
@@ -284,15 +280,4 @@ class Suggester # rubocop:disable Metrics/ClassLength
 
     suggestions
   end
-
-  # Finds candidate completion words based on the current word and prior tokens
-  # @param current_word [String] The word the user is currently typing
-  # @param prior_token_ids [Array<Integer>] IDs of the tokens for the words the user typed before the current word
-  # @return [Array<Hash{token_text=>String, probability=>Float, chunk_size=>Integer}>]
-  def suggestions_by_current_word_and_prior_token_ids(current_word, prior_token_ids); end
-
-  # Finds candidate completion words based on the current word and prior tokens
-  # @param token_ids [Array<Integer>] IDs of the tokens for the words the user typed before the current word
-  # @return [Array<Hash{token_text=>String, probability=>Float, chunk_size=>Integer}>]
-  def chunks_by_starting_tokens(token_ids); end
 end

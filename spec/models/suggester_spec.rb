@@ -39,7 +39,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
         params[:show_analysis] = 'true'
         output = Suggester.new(params).suggest
 
-        expect(output[:analysis]).to eq('No text provided')
+        expect(output[:analysis]).to eq('No input text provided')
       end
 
       it 'gives no analysis if not required' do
@@ -230,8 +230,6 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       suggester = Suggester.new(params)
       suggester.find_prior_token_ids
 
-      p Token.all
-
       expect(Token.all.count).to eq(5)
 
       token_texts = Token.all.map(&:text)
@@ -242,8 +240,6 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       params[:text] = 'the'
       suggester = Suggester.new(params)
       result = suggester.find_prior_token_ids
-
-      p result
 
       expect(result).to be_empty
     end
@@ -698,22 +694,22 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
 
         token_ids = suggester.get_token_id_candidates_from_chunks(chunk_candidates)
 
-        p chunk_candidates
-        p chunk_candidates.map(&:token_ids)
-        p token_ids
+        # p chunk_candidates
+        # p chunk_candidates.map(&:token_ids)
+        # p token_ids
 
         expect(token_ids.length).to eq(chunk_candidates.length)
         expect(token_ids).to include(token_ham.id)
       end
 
-      it 'handles empty chunk_candiates' do
+      it 'handles empty chunk_candidates' do
         chunk_candidates = Chunk.none
 
         token_ids = suggester.get_token_id_candidates_from_chunks(chunk_candidates)
 
-        p chunk_candidates
-        p chunk_candidates.map(&:token_ids)
-        p token_ids
+        # p chunk_candidates
+        # p chunk_candidates.map(&:token_ids)
+        # p token_ids
 
         expect(token_ids.length).to eq(0)
       end
@@ -746,25 +742,13 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
           expect(result.last).to eq({ token_text: 'hit', chunk_size: chunk5.size, count: 1 })
         end
 
-        it 'contains probabilities' do
-          pending
+        it 'contains probabilities', skip: 'Not sure if we need probabilities' do
           result = suggester.build_suggestions(chunk_candidates)[:candidates]
           expect(result.first[:probability]).to eq(longer_chunk)
         end
       end
       context 'analysis is also wanted' do
       end
-    end
-  end
-
-  describe '.get_suggestions' do
-    it 'creates a where clause for the prior tokens'
-    it 'creates a where clause for the possible tokens'
-    it 'retrieves some chunks from the database'
-    context 'no prior tokens' do
-    end
-
-    context 'no possible tokens' do
     end
   end
 
@@ -809,24 +793,6 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       suggestions = suggester.suggestions_by_current_word(current_word)
 
       expect(suggestions).to include(:analysis)
-    end
-  end
-
-  skip '.suggestions_by_current_word_and_prior_token_ids' do
-    it 'hash contains candidates' do
-      output = Suggester.new(params).suggest
-      expect(output).to include(:candidates)
-    end
-
-    it 'hash contains analysis if requested' do
-      params[:show_analysis] = 'true'
-      output = Suggester.new(params).suggest
-      expect(output).to include(:analysis)
-    end
-
-    it 'hash does not contains analysis if not requested' do
-      output = Suggester.new(params).suggest
-      expect(output).to_not include(:analysis)
     end
   end
 end
