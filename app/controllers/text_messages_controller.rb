@@ -37,7 +37,6 @@ class TextMessagesController < ApplicationController
     suggestions = Suggester.new(suggest_params).suggest
 
     @candidates = suggestions && suggestions[:candidates] || []
-    p @candidates
 
     @analysis = suggestions[:analysis] if suggest_params[:show_analysis] == 'true'
 
