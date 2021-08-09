@@ -85,12 +85,6 @@ class ChunkAnalyser
 
       # byebug
 
-      # p @text_message
-      # puts 'existing chunk from where:'
-      # p existing_chunk.first
-      # puts 'existing fist chunk from database:'
-      # p Chunk.first
-
       import_hash = {
         token_ids: token_ids,
         size: chunk_size,

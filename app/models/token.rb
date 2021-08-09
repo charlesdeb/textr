@@ -18,7 +18,6 @@ class Token < ApplicationRecord
 
     # split the text into tokens according to the strategy
     token_texts = split_into_token_texts(message, strategy)
-    # p "token_texts: #{token_texts}"
 
     # save any new tokens in the database for future reference
     save_token_texts(token_texts)

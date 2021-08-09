@@ -105,7 +105,7 @@ RSpec.describe Token, type: :model do # rubocop:disable Metrics/BlockLength
       it "handles: hey, I said 'dude!'" do
         result = Token.split_into_token_texts("hey, I said 'dude!'", strategy)
         expect(result).to eq(['hey', ',', ' ', 'I', ' ', 'said',
-                              ' ', '\'', 'dude', '!', '\''])
+                              ' ', '\'dude', '!', '\''])
       end
     end
   end
