@@ -55,7 +55,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
 
       before(:each) do
         allow(suggester)
-          .to receive(:get_candidate_chunks)
+          .to receive(:get_candidate_chunks2)
           .and_return('some candidates')
         allow(suggester)
           .to receive(:build_suggestions)
@@ -74,7 +74,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       end
 
       it 'gets chunk candidates' do
-        expect(suggester).to receive(:get_candidate_chunks)
+        expect(suggester).to receive(:get_candidate_chunks2)
 
         suggester.suggest
       end
@@ -301,6 +301,10 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
         allow(suggester)
           .to receive(:get_token_id_candidates_from_chunks)
           .and_return(Array.new(four_chunk_candidates.count, 'some token'))
+
+          allow(suggester)
+          .to receive(:get_chunks_by_prior_tokens_only2)
+          # .and_return(Array.new(four_chunk_candidates.count, 'some token'))
       end
 
       it 'gets chunks by prior tokens and current word' do
@@ -588,30 +592,147 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
   context 'chunk methods that need chunks from the database' do # rubocop:disable Metrics/BlockLength
     let!(:token_the) { create(:token, id: 1, text: 'the') }
     let!(:token_space) { create(:token, id: 2, text: ' ') }
+    let!(:token_my) { create(:token, id: 3, text: 'my') }
 
     let!(:token_hat) { create(:token, id: 10, text: 'hat') }
     let!(:token_ham) { create(:token, id: 11, text: 'ham') }
     let!(:token_has) { create(:token, id: 12, text: 'has') }
     let!(:token_hit) { create(:token, id: 13, text: 'hit') }
     let!(:token_ha) { create(:token, id: 14, text: 'ha') }
+    let!(:token_heap) { create(:token, id: 15, text: 'heap') }
+    let!(:token_heart) { create(:token, id: 16, text: 'heart') }
+    let!(:token_moon) { create(:token, id: 17, text: 'moon') }
+    let!(:token_hearts) { create(:token, id: 18, text: 'hearts') }
 
     let!(:chunk_ending_in_hat) do
+      # the hat
       create(:chunk, language: language, count: 5, token_ids: [1, 2, 10], size: 3)
     end
-    let!(:chunk2) do
+    let!(:chunk_the_ham) do
+      # the ham
       create(:chunk, language: language, count: 10, token_ids: [1, 2, 11], size: 3)
     end
-    let!(:chunk3) do
+    let!(:chunk_the_has) do
+      # the has
       create(:chunk, language: language, count: 15, token_ids: [1, 2, 12], size: 3)
     end
     let!(:chunk4) do
+      # the hit
       create(:chunk, language: language, count: 1, token_ids: [1, 2, 13], size: 3)
     end
     let!(:chunk5) do
+      # thethehit
       create(:chunk, language: language, count: 1, token_ids: [1, 1, 13], size: 3)
     end
 
+    let!(:chunk_my_hat) do
+      # my hat
+      create(:chunk, language: language, count: 1, token_ids: [3, 2, 10], size: 3)
+    end
+
+    let!(:chunk_the_heap) do
+      # the heap
+      create(:chunk, language: language, count: 1, token_ids: [1, 2, 15], size: 3)
+    end
+
+    let!(:chunk_my_heart) do
+      # my heart
+      create(:chunk, language: language, count: 5, token_ids: [3, 2, 16], size: 3)
+    end
+
+    let!(:chunk__heart) do
+      # _heart
+      create(:chunk, language: language, count: 1, token_ids: [2, 16], size: 2)
+    end
+
+    let!(:chunk__hearts) do
+      # _hearts
+      create(:chunk, language: language, count: 3, token_ids: [2, 18], size: 2)
+    end
+
+    let!(:chunk_the_moon) do
+      # the_moon
+      create(:chunk, language: language, count: 5, token_ids: [1, 2, 17], size: 3)
+    end
+
     let(:suggester) { Suggester.new(params) }
+
+    describe '.get_chunks_by_prior_tokens_and_current_word2' do # rubocop:disable Metrics/BlockLength
+      let(:prior_token_ids) { [1, 2] }
+      let(:current_word) { 'ha' }
+      let(:candidate_token_ids) { [] }
+
+      it 'looks for token candidates for the current word' do
+        allow(Token).to receive(:starting_with).with(current_word).and_return(Token.none)
+
+        suggester.get_chunks_by_prior_tokens_and_current_word2([1, 2], current_word)
+      end
+
+      it 'orders the candidates correctly' do
+        chunks = suggester
+                 .get_chunks_by_prior_tokens_and_current_word2(
+                   prior_token_ids, current_word, candidate_token_ids
+                 )
+
+        expect(chunks.first.count).to be > chunks.last.count
+      end
+
+      context 'when 5 candidates for the prior tokens and the current word' do
+        let(:current_word) { 'h' }
+        it 'looks in the database for chunks only once' do
+          expect(Chunk).to receive(:where).at_most(:once).and_call_original
+          suggester.get_chunks_by_prior_tokens_and_current_word2([1, 2], current_word)
+        end
+
+        it 'returns the candidates' do
+          result = suggester.get_chunks_by_prior_tokens_and_current_word2([1, 2], current_word)
+
+          expect(result.length).to eq(5)
+        end
+      end
+
+      context 'when less than 5 candidates for the prior tokens and the current word' do
+        let(:current_word) { 'ha' }
+        it 'gets chunks by prior tokens and current word recursively' do
+          expect(suggester).to receive(:get_chunks_by_prior_tokens_and_current_word2).at_least(:twice).and_call_original
+
+          suggester.get_chunks_by_prior_tokens_and_current_word2([1, 2], current_word)
+        end
+
+        it 'adds new chunks to the old as it recurses' do
+          # first time through, it will match 'the heap'. 
+          # second time through, it will match ' heart' and ' hearts'
+          current_word = 'he'
+          chunks = suggester.get_chunks_by_prior_tokens_and_current_word2([1, 2], current_word)
+
+          expect(chunks.length).to eq(3)
+        end
+
+        it 'orders the new chunks after the old' do
+          current_word = 'he'
+          chunks = suggester.get_chunks_by_prior_tokens_and_current_word2([1, 2], current_word)
+
+          # p chunks
+          # p chunks.map(&:token_ids)
+
+          expect(chunks[0]).to eq(chunk_the_heap)   # count 1 (but more prior tokens)
+          expect(chunks[1]).to eq(chunk__hearts)    # count 3
+          expect(chunks[2]).to eq(chunk__heart)     # count 1
+        end
+      end
+
+      context 'when no chunk candidates for the current word' do
+        let(:current_word) { 'zoo' }
+        it 'doesn\'t look in the database for chunks' do
+          expect(Chunk).not_to receive(:where).and_call_original
+        end
+
+        it 'returns no chunks' do
+          result = suggester.get_chunks_by_prior_tokens_and_current_word2([1, 2], current_word)
+          expect(result.length).to eq(0)
+        end
+      end
+    end
 
     describe '.get_chunks_by_prior_tokens_and_current_word' do # rubocop:disable Metrics/BlockLength
       let(:candidate_tokens_for_current_word) { [token_hat, token_ham, token_has] }
@@ -687,7 +808,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
           end
 
           it 'there are no chunks ending with the current_word' do
-            token_hasten = create(:token, id: 15, text: 'hasten')
+            token_hasten = create(:token, id: 20, text: 'hasten')
             allow(Token)
               .to receive(:starting_with)
               .and_return([token_hasten])
@@ -716,6 +837,74 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       end
     end
 
+    describe '.get_chunks_by_prior_tokens_only2' do # rubocop:disable Metrics/BlockLength
+      let(:max_suggestions) { Suggester::MAX_SUGGESTIONS }
+
+      context 'when five candidates for all prior_tokens' do
+        # there are 6 chunk candidates that start with [1, 2] - but we only want five of them
+        let(:prior_token_ids) { [1, 2] }
+
+        it 'calls database once' do
+          expect(Token).to receive(:where).at_most(:once).and_call_original
+
+          suggester.get_chunks_by_prior_tokens_only2(prior_token_ids)
+        end
+
+        it 'returns five candidates' do
+          chunks = suggester.get_chunks_by_prior_tokens_only2(prior_token_ids)
+
+          expect(chunks.length).to eq(max_suggestions)
+        end
+
+        it 'orders candidates correctly' do
+          chunks = suggester.get_chunks_by_prior_tokens_only2(prior_token_ids)
+
+          expect(chunks[0]).to eq(chunk_the_has)       # count = 15
+          expect(chunks[1]).to eq(chunk_the_ham)       # count = 10
+          expect(chunks[2]).to eq(chunk_ending_in_hat) # count = 5
+        end
+      end
+
+      context 'when less than five candidates for all prior_tokens' do
+        # there are only 2 chunk candidates that start with [3, 2] - but there 
+        # are another two that starts with [2]. However, one of those is 
+        # 'heart' which we don't want to add twice.
+        let(:prior_token_ids) { [3, 2] }
+
+        it 'calls get_chunks_by_prior_tokens_only2 recursively' do
+          expect(suggester).to receive(:get_chunks_by_prior_tokens_only2).at_least(:twice).and_call_original
+          expect(Chunk).to receive(:where).at_least(:twice).and_call_original
+
+          suggester.get_chunks_by_prior_tokens_only2(prior_token_ids)
+        end
+
+        it 'returns all the candidates' do
+          chunks = suggester.get_chunks_by_prior_tokens_only2(prior_token_ids)
+
+          expect(chunks.length).to eq(3)
+        end
+
+        it 'orders candidates correctly' do
+          # even though _heart has a count of 3, because it is less specific
+          # than my_heart it should be second
+          chunks = suggester.get_chunks_by_prior_tokens_only2(prior_token_ids)
+
+          expect(chunks[0]).to eq(chunk_my_heart) # count = 5
+          expect(chunks[1]).to eq(chunk_my_hat)   # count = 1
+          expect(chunks[2]).to eq(chunk__hearts)  # count = 3
+        end
+      end
+
+      context 'when no prior_token_ids' do
+        it 'returns empty relation' do
+          prior_token_ids = []
+          chunks = suggester.get_chunks_by_prior_tokens_only(prior_token_ids)
+
+          expect(chunks.length).to eq(0)
+        end
+      end
+    end
+
     describe '.get_chunks_by_prior_tokens_only' do # rubocop:disable Metrics/BlockLength
       let(:prior_token_ids) { [1, 2] }
 
@@ -730,7 +919,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
         it 'returns chunk candidates' do
           chunks = suggester.get_chunks_by_prior_tokens_only(prior_token_ids)
 
-          expect(chunks.length).to eq(4)
+          expect(chunks.length).to eq(6)
         end
 
         it 'orders chunk candidates' do
@@ -759,7 +948,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
           result = suggester.get_chunks_by_prior_tokens_only([1, 2], candidate_token_ids)
 
           expect(result).to_not include(chunk_ending_in_hat)
-          expect(result.length).to eq(3)
+          expect(result.length).to eq(5)
         end
       end
     end
@@ -795,8 +984,8 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       let(:suggester) { Suggester.new(params) }
 
       let!(:longer_chunk) { create(:chunk, language: language, count: 2, token_ids: [1, 2, 10, 2], size: 4) }
-      let(:chunk_candidates) do
-        [longer_chunk, chunk_ending_in_hat, chunk2, chunk3, chunk4, chunk5]
+      let!(:chunk_candidates) do
+        [longer_chunk, chunk_ending_in_hat, chunk_the_ham, chunk_the_has, chunk4, chunk5]
       end
 
       describe 'the candidates hash' do

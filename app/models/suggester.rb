@@ -31,7 +31,8 @@ class Suggester # rubocop:disable Metrics/ClassLength
     # possible_token_ids = get_possible_token_ids(current_word)
     prior_token_ids = find_prior_token_ids
 
-    chunk_candidates = get_candidate_chunks(prior_token_ids, current_word)
+    # chunk_candidates = get_candidate_chunks(prior_token_ids, current_word)
+    chunk_candidates = get_candidate_chunks2(prior_token_ids, current_word)
 
     # puts 'candidate_chunks:'
     # p chunk_candidates
@@ -241,7 +242,7 @@ class Suggester # rubocop:disable Metrics/ClassLength
   def get_chunks_by_prior_tokens_and_current_word2(prior_token_ids, current_word, candidate_token_ids = []) # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
     # find all the possible tokens that start with the current_word
     # TODO: we only really need to calculate this once, not each time this is
-    # called
+    # called - so it should be at the get_candidate_chunks2 level
     candidate_tokens_for_current_word = Token.starting_with(current_word)
 
     return Chunk.none if candidate_tokens_for_current_word.empty?
@@ -255,15 +256,27 @@ class Suggester # rubocop:disable Metrics/ClassLength
 
     token_ids_where = " AND (#{token_ids_where} )" unless token_ids_where.blank?
 
+    # p 'token_ids_where: '
+    # p @language_id
+    # p token_ids_where
+
+    # p Chunk.where("language_id = :language_id #{token_ids_where}", language_id: @language_id)
+
     candidate_chunks = Chunk.where("language_id = :language_id #{token_ids_where}",
                                    language_id: @language_id)
                             .exclude_candidate_token_ids(candidate_token_ids, prior_token_ids.length + 1)
                             .limit(MAX_SUGGESTIONS - candidate_token_ids.size)
                             .order(count: :desc).to_a
 
+    # p candidate_chunks
+
+    # Add new candidate tokens to the list
     candidate_token_ids += get_token_id_candidates_from_chunks(candidate_chunks)
 
-    # If we got our MAX_SUGGESTIONS, then we're done
+    # p 'candidate_token_ids:'
+    # p candidate_token_ids
+
+    # If we got our MAX_SUGGESTIONS or we're out of prior_tokens, then we're done
     return candidate_chunks if candidate_token_ids.size == MAX_SUGGESTIONS || prior_token_ids.size.zero?
 
     candidate_chunks + get_chunks_by_prior_tokens_and_current_word2(prior_token_ids[1..],
@@ -303,25 +316,29 @@ class Suggester # rubocop:disable Metrics/ClassLength
   # @param candidate_token_ids [Array<Int>] candidate tokens that have already been found
   #
   # @return [ActiveRelation] chunks that match the search parameters
-  def get_chunks_by_prior_tokens_only2(prior_token_ids, candidate_token_ids = [])
+  def get_chunks_by_prior_tokens_only2(prior_token_ids, candidate_token_ids = []) # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
     return Chunk.none if prior_token_ids.empty?
 
     token_ids_where = prior_token_ids.map.with_index do |token_id, index|
       "token_ids[#{index + 1}] = #{token_id}"
     end
 
-    # p token_ids_where
-
     token_ids_where = " AND #{token_ids_where.join(' AND ')}" unless token_ids_where.empty?
 
-    Chunk.where("language_id = :language_id AND size = :size #{token_ids_where}",
-                language_id: @language_id,
-                size: prior_token_ids.length + 1)
-         .exclude_candidate_token_ids(candidate_token_ids, prior_token_ids.length + 1)
-         .order(count: :desc)
+    candidate_chunks = Chunk.where("language_id = :language_id AND size = :size #{token_ids_where}",
+                                   language_id: @language_id,
+                                   size: prior_token_ids.length + 1)
+                            .exclude_candidate_token_ids(candidate_token_ids, prior_token_ids.length + 1)
+                            .limit(MAX_SUGGESTIONS - candidate_token_ids.size)
+                            .order(count: :desc)
+    # Add new candidate tokens to the list
+    candidate_token_ids += get_token_id_candidates_from_chunks(candidate_chunks)
 
+    # If we got our MAX_SUGGESTIONS or we're out of prior_tokens, then we're done
+    return candidate_chunks if candidate_token_ids.size == MAX_SUGGESTIONS || prior_token_ids.size.zero?
 
-        #  || prior_token_ids.size.zero?
+    candidate_chunks + get_chunks_by_prior_tokens_only2(prior_token_ids[1..],
+                                                        candidate_token_ids)
   end
 
   # Returns an array of final token IDs from each of the chunk_candidates

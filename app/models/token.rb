@@ -42,6 +42,7 @@ class Token < ApplicationRecord
   #                                 .split(/\s|\p{Punct}/)
   #                                 .compact
   #                                 .reject(&:empty?)
+  # TODO: figure out how to split on all punctuation EXCEPT apostrophes - in English!
   def self.split_into_token_texts(text, strategy = :by_word)
     # ensure we are using a known analysis strategy
     validate_strategy(strategy)
@@ -53,7 +54,8 @@ class Token < ApplicationRecord
     when :by_letter
       text.split('')
     when :by_word
-      text.split(/(\s+)|(\p{Punct})/).compact.reject(&:empty?)
+      # text.split(/(\s+)|(\p{Punct})/).compact.reject(&:empty?)
+      text.split(/(\s+)|([,.!?$£%"-])|(~)/).compact.reject(&:empty?)
     end
   end
 
