@@ -20,19 +20,16 @@
   </div>
 </div>
 <div class='row'>
-  <div class='col-4'>
+  <div class='col-12'>
     <h2>Old Text</h2>
-    <% if @text_messages 
-      @text_messages.each do |text_message| %>
-      <li><%= text_message.text %></li>
-    <% end %>
-    <%= link_to "Reset all...", text_messages_reset_path, method: :delete, data: { confirm: "Are you sure?" }, class: 'btn btn-danger'%>
-    <% %>
-  <% end %>
+    <div class='d-flex flex-row flex-wrap align-content-start'>
+      <% if @text_messages 
+        @text_messages.each do |text_message| %>
+        <div class='px-3 py-2 old-text-message'><%= text_message.text %></div>
+        <% end %>
+      <%= link_to "Reset all...", text_messages_reset_path, method: :delete, data: { confirm: "Are you sure?" }, class: 'btn btn-danger'%>
+      <% end %>
+    </div>
+  </div>
 </div>
-<div class='col'>
-  <h2>Analysis</h2>
-  <p>Show Analysis? <%= check_box_tag 'show_analysis?'%></p>
-  <div id='analysis'></div>
-</div>
-</div>
+
