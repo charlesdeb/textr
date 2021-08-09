@@ -8,7 +8,7 @@ RSpec.describe Token, type: :model do # rubocop:disable Metrics/BlockLength
     it { should validate_uniqueness_of(:text).case_insensitive }
   end
 
-  describe '::id_ise' do # rubocop:disable Metrics/BlockLength
+  describe '#id_ise' do # rubocop:disable Metrics/BlockLength
     let(:text_message) { create(:text_message) }
     let(:strategy) { :by_letter }
     let(:token_texts) { %w[a b c] }
@@ -52,7 +52,7 @@ RSpec.describe Token, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  describe '::split_into_token_texts' do # rubocop:disable Metrics/BlockLength
+  describe '#split_into_token_texts' do # rubocop:disable Metrics/BlockLength
     it 'requires a known strategy' do
       expect(Token).to receive(:validate_strategy)
 
@@ -110,7 +110,7 @@ RSpec.describe Token, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  describe '::save_token_texts' do # rubocop:disable Metrics/BlockLength
+  describe '#save_token_texts' do # rubocop:disable Metrics/BlockLength
     it 'adds the right number of tokens' do
       token_texts = %w[the hat]
       Token.save_token_texts(token_texts)
@@ -139,6 +139,17 @@ RSpec.describe Token, type: :model do # rubocop:disable Metrics/BlockLength
       expect(Token.count).to eq(2)
     end
 
+    it "doesn't try to add tokens that are already in the database" do
+      # Add the 'hat' token
+      Token.create!({ text: 'the', created_at: DateTime.now })
+      Token.create!({ text: 'hat', created_at: DateTime.now })
+
+      expect(Token).not_to receive(:insert_all)
+
+      token_texts = %w[the hat]
+      Token.save_token_texts(token_texts)
+    end
+
     it 'handles letters' do
       token_texts = %w[a b c]
       Token.save_token_texts(token_texts)
@@ -146,7 +157,7 @@ RSpec.describe Token, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  describe '::token_texts_to_token_ids' do
+  describe '#token_texts_to_token_ids' do
     before(:each) do
       current_time = DateTime.now
       Token.create!({ id: 1, text: 'the', created_at: current_time })
@@ -172,7 +183,7 @@ RSpec.describe Token, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  describe '::token_ids_to_token_texts' do
+  describe '#token_ids_to_token_texts' do
     before(:each) do
       current_time = DateTime.now
       Token.create!({ id: 1, text: 'the', created_at: current_time })
@@ -198,7 +209,7 @@ RSpec.describe Token, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  describe '::validate_strategy' do
+  describe '#validate_strategy' do
     it 'raises error for an unknown strategy' do
       expect do
         Token.validate_strategy(:zoop_zoop)
@@ -214,7 +225,7 @@ RSpec.describe Token, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  describe '::starting_with' do
+  describe '#starting_with' do
     let!(:token_hat) { create(:token, text: 'hat') }
     let!(:token_ham) { create(:token, text: 'ham') }
     let!(:token_has) { create(:token, text: 'has') }

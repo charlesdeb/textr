@@ -10,7 +10,7 @@ class Token < ApplicationRecord
   # @param [String] message contains text to convert to tokens
   # @param [Symbol] strategy one of :by_letter, :by_word
   # @return [Array<Integer>] An array of token IDs from the tokens table
-  def self.id_ise(message, strategy = nil)
+  def self.id_ise(message, strategy = :by_word)
     # ensure we are using a known analysis strategy
     validate_strategy(strategy)
 
@@ -65,14 +65,23 @@ class Token < ApplicationRecord
 
     # strip out any duplicate tokens. Although insert_all will do this, it's
     # more efficient to do it in memory
-    unique_token_texts = token_texts.uniq
-    unique_token_texts_import = unique_token_texts.map do |the_token|
+    token_texts = token_texts.uniq
+
+    # remove any tokens that have already been added to the database. Although
+    # insert_all prevents dupes from being added, it leaves large gaps in the 
+    # IDs of the new tokens which is a bit weird. This adds a small performance 
+    # hit.
+    token_texts = token_texts - Token.where(text: token_texts).map(&:text)
+
+    return unless token_texts.length > 0
+
+    token_texts_import = token_texts.map do |the_token|
       { text: the_token,
         created_at: current_time, updated_at: current_time }
     end
 
     # Stick in the database
-    Token.insert_all unique_token_texts_import
+    Token.insert_all token_texts_import
   end
 
   # converts an array of tokens in text form to their IDs
