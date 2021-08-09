@@ -89,13 +89,6 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  # it 'gets possible tokens based on the current word' do
-  #   allow(suggester).to receive(:find_current_word).and_return('current_word')
-  #   expect(suggester).to receive(:get_possible_token_ids).with('current_word')
-
-  #   suggester.suggest
-  # end
-
   describe '.find_current_word' do
     it 'handles spaces at the end' do
       texts = [' ', '  ', 'cat ', 'cat  ']
@@ -242,6 +235,89 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       result = suggester.find_prior_token_ids
 
       expect(result).to be_empty
+    end
+  end
+
+  describe '.get_candidate_chunks2' do # rubocop:disable Metrics/BlockLength
+    let(:prior_token_ids) { [1, 2, 3, 4] }
+    let(:current_word) { 'ha' }
+    let(:candidate_token_ids) { [] }
+    let(:suggester) { Suggester.new(params) }
+    let(:max_suggestions) { Suggester::MAX_SUGGESTIONS }
+
+    let(:five_chunk_candidates) do
+      double(
+        'AR Relation 5 candidates',
+        count: max_suggestions,
+        to_a: Array.new(max_suggestions)
+      )
+        .as_null_object
+    end
+
+    let(:four_chunk_candidates) do
+      double(
+        'AR Relation 4 candidates',
+        count: max_suggestions - 1,
+        to_a: Array.new(max_suggestions - 1)
+      )
+        .as_null_object
+    end
+
+    context '5 candidates for the prior tokens and the current word' do
+      before(:each) do
+        allow(suggester)
+          .to receive(:get_chunks_by_prior_tokens_and_current_word2)
+          .and_return(five_chunk_candidates)
+
+        allow(suggester)
+          .to receive(:get_token_id_candidates_from_chunks)
+          .and_return(Array.new(five_chunk_candidates.count, 'some token'))
+      end
+
+      it 'gets chunks by prior tokens and current word' do
+        expect(suggester)
+          .to receive(:get_chunks_by_prior_tokens_and_current_word2)
+          .with(prior_token_ids, current_word, candidate_token_ids)
+          .once
+
+        suggester.get_candidate_chunks2(prior_token_ids, current_word, candidate_token_ids)
+      end
+
+      it "doesn't get chunks just by prior tokens" do
+        expect(suggester)
+          .not_to receive(:get_chunks_by_prior_tokens_only2)
+          .with(prior_token_ids, candidate_token_ids)
+
+        suggester.get_candidate_chunks2(prior_token_ids, current_word, candidate_token_ids)
+      end
+    end
+
+    context 'less than 5 candidates for the prior tokens and the current word' do
+      before(:each) do
+        allow(suggester)
+          .to receive(:get_chunks_by_prior_tokens_and_current_word2)
+          .and_return(four_chunk_candidates)
+
+        allow(suggester)
+          .to receive(:get_token_id_candidates_from_chunks)
+          .and_return(Array.new(four_chunk_candidates.count, 'some token'))
+      end
+
+      it 'gets chunks by prior tokens and current word' do
+        expect(suggester)
+          .to receive(:get_chunks_by_prior_tokens_and_current_word2)
+          .with(prior_token_ids, current_word, candidate_token_ids)
+
+        suggester.get_candidate_chunks2(prior_token_ids, current_word, candidate_token_ids)
+      end
+
+      it 'gets chunks just by prior tokens' do
+        expect(suggester)
+          .to receive(:get_chunks_by_prior_tokens_only2)
+          .with(prior_token_ids, Array.new(four_chunk_candidates.count, 'some token'))
+
+        suggester.get_candidate_chunks2(prior_token_ids, current_word, candidate_token_ids)
+      end
     end
   end
 

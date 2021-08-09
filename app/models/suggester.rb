@@ -129,6 +129,45 @@ class Suggester # rubocop:disable Metrics/ClassLength
                                             candidate_token_ids)
   end
 
+  # Returns best chunk candidates that match current user input
+  #
+  # @param prior_token_ids [Array<Integer>] array of token IDs that have been
+  #                                         entered so far
+  # @param current_word [String] text of the word the user is currently typing
+  # @param candidate_token_ids [Array<Int>] candidate tokens that have already been found.
+  #                                      It is empty for the first call, but should get
+  #                                      longer with recursive calls
+  #
+  # @return [Array<Chunk>] I think just an array of Chunks that are candidates - not an ActiveRelation
+  #
+  # Get the candidate chunks for the current prior_token_ids, current_word -
+  # and if we can't get MAX_SUGGESTIONS of candidates, then lose the current_word
+  # and keep looking
+  def get_candidate_chunks2(prior_token_ids, current_word, candidate_token_ids = [])
+    # Get chunk candidates that match the prior tokens with or without the
+    # current word
+
+    # puts 'in get_candidate_chunks'
+    # p prior_token_ids
+    # p current_word
+    # p candidate_token_ids
+
+    candidate_chunks = get_chunks_by_prior_tokens_and_current_word2(prior_token_ids, current_word, candidate_token_ids)
+    candidate_token_ids += get_token_id_candidates_from_chunks(candidate_chunks.to_a)
+
+    # p 'after get_chunks_by_prior_tokens_and_current_word2...'
+    # p candidate_chunks
+    # p candidate_token_ids
+    # p candidate_token_ids.size
+
+    # If we got our MAX_SUGGESTIONS or we have looked at all the prior tokens, then we're done
+    return candidate_chunks if candidate_token_ids.size == MAX_SUGGESTIONS
+
+    # get more chunks but without using the current_word
+    candidate_chunks + get_chunks_by_prior_tokens_only2(prior_token_ids,
+                                                        candidate_token_ids)
+  end
+
   # Returns chunk candidates that match current user input, first by current word
   #
   # @param prior_token_ids [Array<Integer>] array of token IDs that have been
@@ -190,6 +229,48 @@ class Suggester # rubocop:disable Metrics/ClassLength
          .order(count: :desc)
   end
 
+  # Returns chunks candidates that match current user input ordered by occurrence
+  #
+  # @param prior_token_ids [Array<Integer>] array of token IDs that have been
+  #                                         entered so far
+  # @param current_word [String] text of the word the user is currently typing
+  # @param candidate_token_ids [Array<Int>] candidate tokens that have already been found
+  # @return [ActiveRelation] chunks that match the search parameters
+  #
+  # Returns empty relation if the current word doesn't match any known tokens
+  def get_chunks_by_prior_tokens_and_current_word2(prior_token_ids, current_word, candidate_token_ids = []) # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
+    # find all the possible tokens that start with the current_word
+    # TODO: we only really need to calculate this once, not each time this is
+    # called
+    candidate_tokens_for_current_word = Token.starting_with(current_word)
+
+    return Chunk.none if candidate_tokens_for_current_word.empty?
+
+    candidate_token_ids_for_current_word = candidate_tokens_for_current_word.to_a.map(&:id)
+
+    token_ids_where = candidate_token_ids_for_current_word.map do |token_id|
+      "token_ids = ARRAY#{prior_token_ids + [token_id]}"
+    end
+    token_ids_where = token_ids_where.join(' OR ')
+
+    token_ids_where = " AND (#{token_ids_where} )" unless token_ids_where.blank?
+
+    candidate_chunks = Chunk.where("language_id = :language_id #{token_ids_where}",
+                                   language_id: @language_id)
+                            .exclude_candidate_token_ids(candidate_token_ids, prior_token_ids.length + 1)
+                            .limit(MAX_SUGGESTIONS - candidate_token_ids.size)
+                            .order(count: :desc).to_a
+
+    candidate_token_ids += get_token_id_candidates_from_chunks(candidate_chunks)
+
+    # If we got our MAX_SUGGESTIONS, then we're done
+    return candidate_chunks if candidate_token_ids.size == MAX_SUGGESTIONS || prior_token_ids.size.zero?
+
+    candidate_chunks + get_chunks_by_prior_tokens_and_current_word2(prior_token_ids[1..],
+                                                                    current_word,
+                                                                    candidate_token_ids)
+  end
+
   # Returns chunks candidates that match current user input
   #
   # @param prior_token_ids [Array<Integer>] array of token IDs that have been
@@ -213,6 +294,34 @@ class Suggester # rubocop:disable Metrics/ClassLength
                 size: prior_token_ids.length + 1)
          .exclude_candidate_token_ids(candidate_token_ids, prior_token_ids.length + 1)
          .order(count: :desc)
+  end
+
+  # Returns chunks candidates that match current user input
+  #
+  # @param prior_token_ids [Array<Integer>] array of token IDs that have been
+  #                                         entered so far
+  # @param candidate_token_ids [Array<Int>] candidate tokens that have already been found
+  #
+  # @return [ActiveRelation] chunks that match the search parameters
+  def get_chunks_by_prior_tokens_only2(prior_token_ids, candidate_token_ids = [])
+    return Chunk.none if prior_token_ids.empty?
+
+    token_ids_where = prior_token_ids.map.with_index do |token_id, index|
+      "token_ids[#{index + 1}] = #{token_id}"
+    end
+
+    # p token_ids_where
+
+    token_ids_where = " AND #{token_ids_where.join(' AND ')}" unless token_ids_where.empty?
+
+    Chunk.where("language_id = :language_id AND size = :size #{token_ids_where}",
+                language_id: @language_id,
+                size: prior_token_ids.length + 1)
+         .exclude_candidate_token_ids(candidate_token_ids, prior_token_ids.length + 1)
+         .order(count: :desc)
+
+
+        #  || prior_token_ids.size.zero?
   end
 
   # Returns an array of final token IDs from each of the chunk_candidates
