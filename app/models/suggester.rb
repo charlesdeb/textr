@@ -21,11 +21,7 @@ class Suggester # rubocop:disable Metrics/ClassLength
   #
   # @return [Hash] See build_suggestions for details
   def suggest
-    if @text.strip.empty?
-      output = { candidates: [] }
-      output[:analysis] = 'No input text provided' if @show_analysis
-      return output
-    end
+    return { candidates: [] } if @text.strip.empty?
 
     current_word = find_current_word
     # possible_token_ids = get_possible_token_ids(current_word)
@@ -82,13 +78,13 @@ class Suggester # rubocop:disable Metrics/ClassLength
     last_token_text = prior_token_text[-1]
     prior_token_text = prior_token_text[0..-2] unless last_token_text.punctuation? || last_token_text.whitespace?
 
-    # add any new tokens just found to the database
-    # TODO: we only need to do this if the user has just entered a space or
-    # punctuation
+    # add any new tokens just found to the database - including duff tokens
+    # with typos in it - since our algorithm only works with IDs
     prior_token_text = prior_token_text.join
     token_ids = Token.id_ise(prior_token_text, :by_word)
 
     # return (at most) the most recent 8 of those tokens
+    # TODO: refactor to make it simpler to understand
     token_ids[(token_ids.length > max_tokens_to_return ? -max_tokens_to_return : (-1 - (token_ids.length - 1)))..]
   end
 
@@ -136,10 +132,14 @@ class Suggester # rubocop:disable Metrics/ClassLength
   # Get the candidate chunks for the current prior_token_ids, current_word -
   # and if we can't get MAX_SUGGESTIONS of candidates, then lose the current_word
   # and keep looking
-  def get_candidate_chunks(prior_token_ids, current_word, candidate_token_ids = [])
-    # Get chunk candidates that match the prior tokens with or without the
-    # current word
-    candidate_chunks = get_chunks_by_prior_tokens_and_current_word(prior_token_ids, current_word, candidate_token_ids)
+  def get_candidate_chunks(prior_token_ids, current_word)
+    candidate_token_ids = []
+    # Get chunk candidates that match the prior tokens with the current word
+    candidate_chunks = get_chunks_by_prior_tokens_and_current_word(
+      prior_token_ids, current_word, candidate_token_ids
+    )
+
+    # get the token ids from those chunks
     candidate_token_ids += get_token_id_candidates_from_chunks(candidate_chunks.to_a)
 
     # If we got our MAX_SUGGESTIONS or we have looked at all the prior tokens, then we're done
@@ -150,6 +150,9 @@ class Suggester # rubocop:disable Metrics/ClassLength
                                                        candidate_token_ids)
   end
 
+  # OBSOLETE
+  # It is called by get_candidate_chunks_old, and was from an earlier version
+  # of get_candidate_chunks
   # Returns chunk candidates that match current user input, first by current word
   #
   # @param prior_token_ids [Array<Integer>] array of token IDs that have been
@@ -215,15 +218,16 @@ class Suggester # rubocop:disable Metrics/ClassLength
   #
   # @param prior_token_ids [Array<Integer>] array of token IDs that have been
   #                                         entered so far
-  # @param current_word [String] text of the word the user is currently typing
-  # @param candidate_token_ids [Array<Int>] candidate tokens that have already been found
-  # @return [ActiveRelation] chunks that match the search parameters
+  # @param current_word [String]            text of the word the user is currently typing
+  # @param candidate_token_ids [Array<Int>] candidate token IDs that have already been found
+  # @return [Array<Chunk>]                  chunks that match the search parameters
   #
-  # Returns empty relation if the current word doesn't match any known tokens
+  # Returns empty array if the current word doesn't match any known tokens
+  # TODO: refactor this
   def get_chunks_by_prior_tokens_and_current_word(prior_token_ids, current_word, candidate_token_ids = []) # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
     # find all the possible tokens that start with the current_word
     # TODO: we only really need to calculate this once, not each time this is
-    # called - so it should be at the get_candidate_chunks level
+    # called
     candidate_tokens_for_current_word = Token.starting_with(current_word)
 
     return Chunk.none if candidate_tokens_for_current_word.empty?
@@ -283,7 +287,10 @@ class Suggester # rubocop:disable Metrics/ClassLength
   #                                         entered so far
   # @param candidate_token_ids [Array<Int>] candidate tokens that have already been found
   #
-  # @return [ActiveRelation] chunks that match the search parameters
+  # @return [Array<Chunk>]                  chunks that match the search parameters
+  #
+  # Returns empty array if no prior tokens match any chunks (or if there are
+  # no prior tokens)
   def get_chunks_by_prior_tokens_only(prior_token_ids, candidate_token_ids = []) # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
     return Chunk.none if prior_token_ids.empty?
 
@@ -298,7 +305,7 @@ class Suggester # rubocop:disable Metrics/ClassLength
                                    size: prior_token_ids.length + 1)
                             .exclude_candidate_token_ids(candidate_token_ids, prior_token_ids.length + 1)
                             .limit(MAX_SUGGESTIONS - candidate_token_ids.size)
-                            .order(count: :desc)
+                            .order(count: :desc).to_a
     # Add new candidate tokens to the list
     candidate_token_ids += get_token_id_candidates_from_chunks(candidate_chunks)
 
