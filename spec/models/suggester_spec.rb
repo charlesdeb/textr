@@ -61,14 +61,8 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
           .to receive(:build_suggestions)
       end
 
-      it 'finds latest word being typed' do
-        expect(suggester).to receive(:find_current_word)
-
-        suggester.suggest
-      end
-
       it 'finds prior tokens' do
-        expect(suggester).to receive(:find_prior_token_ids)
+        expect(suggester).to receive(:prior_token_ids)
 
         suggester.suggest
       end
@@ -89,13 +83,13 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  describe '.find_current_word' do
+  describe '.current_word' do
     it 'handles spaces at the end' do
       texts = [' ', '  ', 'cat ', 'cat  ']
       texts.each do |text|
         params[:text] = text
         suggester = Suggester.new(params)
-        current_word = suggester.find_current_word
+        current_word = suggester.current_word
         # expect(current_word).to eq(' '), "expected ' ', got '#{current_word}' from input of '#{text}'"
         expect(current_word).to eq(nil), "expected nil, got '#{current_word}' from input of '#{text}'"
       end
@@ -107,7 +101,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       texts.each do |text|
         params[:text] = text
         suggester = Suggester.new(params)
-        current_word = suggester.find_current_word
+        current_word = suggester.current_word
         expect(current_word)
           .to eq(expected_word),
               "expected '#{expected_word}', got '#{current_word}' from input of '#{text}'"
@@ -115,57 +109,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  describe '.get_possible_token_ids' do # rubocop:disable Metrics/BlockLength
-    let!(:mope_token_id) { Token.id_ise('mope', :by_word).first }
-    let!(:moon_token_id) { Token.id_ise('moon', :by_word).first }
-    let!(:mike_token_id) { Token.id_ise('mike', :by_word).first }
-
-    it 'returns [] when no matches' do
-      suggester = Suggester.new(params)
-
-      # a word that we have never seen before
-      current_word = 'zigsbery'
-
-      expect(suggester.get_possible_token_ids(current_word)).to eq([])
-    end
-
-    it 'returns [] with empty word' do
-      suggester = Suggester.new(params)
-
-      # a word that we have never seen before
-      current_word = ''
-
-      expect(suggester.get_possible_token_ids(current_word)).to eq([])
-    end
-
-    context 'some sample tokens in database' do
-      it 'works for 1 character words' do
-        current_word = 'm'
-        params[:text] = current_word
-        suggester = Suggester.new(params)
-
-        possible_token_ids = suggester.get_possible_token_ids(current_word)
-
-        expect(possible_token_ids).to include(mope_token_id)
-        expect(possible_token_ids).to include(moon_token_id)
-        expect(possible_token_ids).to include(mike_token_id)
-      end
-
-      it 'works for 2 character words' do
-        current_word = 'mo'
-        params[:text] = current_word
-        suggester = Suggester.new(params)
-
-        possible_token_ids = suggester.get_possible_token_ids(current_word)
-
-        expect(possible_token_ids).to include(mope_token_id)
-        expect(possible_token_ids).to include(moon_token_id)
-        expect(possible_token_ids).to_not include(mike_token_id)
-      end
-    end
-  end
-
-  describe '.find_prior_token_ids' do # rubocop:disable Metrics/BlockLength
+  describe '.prior_token_ids' do # rubocop:disable Metrics/BlockLength
     let(:max_tokens_to_return) { ChunkAnalyser::CHUNK_SIZE_RANGE.max - 1 }
 
     before(:each) do
@@ -189,7 +133,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
         params[:text] = text_and_expectation[:text]
         expected_token_ids = text_and_expectation[:expected_token_ids]
         suggester = Suggester.new(params)
-        prior_token_ids = suggester.find_prior_token_ids
+        prior_token_ids = suggester.prior_token_ids
         expect(prior_token_ids)
           .to eq(expected_token_ids),
               "expected '#{expected_token_ids}', got '#{prior_token_ids}' from input of '#{params[:text]}'"
@@ -200,7 +144,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       text = 'the cat in the hat in' # 11 tokens (6 words, 5 spaces)
       params[:text] = text
       suggester = Suggester.new(params)
-      prior_token_ids = suggester.find_prior_token_ids
+      prior_token_ids = suggester.prior_token_ids
       expect(prior_token_ids.length)
         .to eq(max_tokens_to_return)
       expect(prior_token_ids)
@@ -211,17 +155,28 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       text = 'the cat in the hat' # 8 tokens plus the final word "hat"
       params[:text] = text
       suggester = Suggester.new(params)
-      prior_token_ids = suggester.find_prior_token_ids
+      prior_token_ids = suggester.prior_token_ids
       expect(prior_token_ids.length)
         .to eq(max_tokens_to_return)
       expect(prior_token_ids)
         .to eq([2, 3, 2, 4, 2, 1, 2]) # ' cat in the '
     end
 
+    it 'returns exactly 2 tokens if 1 plus a word submitted' do
+      text = 'the c' # 8 tokens plus the final word "hat"
+      params[:text] = text
+      suggester = Suggester.new(params)
+      prior_token_ids = suggester.prior_token_ids
+      expect(prior_token_ids.length)
+        .to eq(2)
+      expect(prior_token_ids)
+        .to eq([1, 2]) # 'the '
+    end
+
     it 'doesn\'t add the current word to the table of tokens' do
       params[:text] = 'the rain'
       suggester = Suggester.new(params)
-      suggester.find_prior_token_ids
+      suggester.prior_token_ids
 
       expect(Token.all.count).to eq(5)
 
@@ -232,7 +187,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     it 'returns empty array if there are no prior token ids' do
       params[:text] = 'the'
       suggester = Suggester.new(params)
-      result = suggester.find_prior_token_ids
+      result = suggester.prior_token_ids
 
       expect(result).to be_empty
     end
@@ -240,7 +195,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
 
   describe '.get_candidate_chunks' do # rubocop:disable Metrics/BlockLength
     let(:prior_token_ids) { [1, 2, 3, 4] }
-    let(:current_word) { 'ha' }
+    let(:current_word) { 'ca' }
     let(:candidate_token_ids) { [] }
     let(:suggester) { Suggester.new(params) }
     let(:max_suggestions) { Suggester::MAX_SUGGESTIONS }
@@ -263,6 +218,12 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
         .as_null_object
     end
 
+    it 'finds latest word being typed' do
+      expect(suggester).to receive(:current_word)
+
+      suggester.suggest
+    end
+
     context '5 candidates for the prior tokens and the current word' do
       before(:each) do
         allow(suggester)
@@ -277,10 +238,10 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       it 'gets chunks by prior tokens and current word' do
         expect(suggester)
           .to receive(:get_chunks_by_prior_tokens_and_current_word)
-          .with(prior_token_ids, current_word, candidate_token_ids)
+          .with(prior_token_ids, candidate_token_ids)
           .once
 
-        suggester.get_candidate_chunks(prior_token_ids, current_word)
+        suggester.get_candidate_chunks(prior_token_ids)
       end
 
       it "doesn't get chunks by prior tokens only" do
@@ -288,7 +249,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
           .not_to receive(:get_chunks_by_prior_tokens_only)
           .with(prior_token_ids, candidate_token_ids)
 
-        suggester.get_candidate_chunks(prior_token_ids, current_word)
+        suggester.get_candidate_chunks(prior_token_ids)
       end
     end
 
@@ -310,9 +271,9 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       it 'gets chunks by prior tokens and current word' do
         expect(suggester)
           .to receive(:get_chunks_by_prior_tokens_and_current_word)
-          .with(prior_token_ids, current_word, candidate_token_ids)
+          .with(prior_token_ids, candidate_token_ids)
 
-        suggester.get_candidate_chunks(prior_token_ids, current_word)
+        suggester.get_candidate_chunks(prior_token_ids)
       end
 
       it 'also gets chunks by prior tokens only' do
@@ -320,7 +281,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
           .to receive(:get_chunks_by_prior_tokens_only)
           .with(prior_token_ids, Array.new(four_chunk_candidates.count, 'some token'))
 
-        suggester.get_candidate_chunks(prior_token_ids, current_word)
+        suggester.get_candidate_chunks(prior_token_ids)
       end
     end
   end
@@ -398,16 +359,22 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       let(:current_word) { 'ha' }
       let(:candidate_token_ids) { [] }
 
+      before(:each) do
+        allow(suggester)
+          .to receive(:current_word)
+          .and_return(current_word)
+      end
+
       it 'looks for token candidates for the current word' do
         allow(Token).to receive(:starting_with).with(current_word).and_return(Token.none)
 
-        suggester.get_chunks_by_prior_tokens_and_current_word([1, 2], current_word)
+        suggester.get_chunks_by_prior_tokens_and_current_word([1, 2])
       end
 
       it 'orders the candidates correctly' do
         chunks = suggester
                  .get_chunks_by_prior_tokens_and_current_word(
-                   prior_token_ids, current_word, candidate_token_ids
+                   prior_token_ids, candidate_token_ids
                  )
 
         expect(chunks.first.count).to be > chunks.last.count
@@ -417,36 +384,43 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
         let(:current_word) { 'h' }
         it 'looks in the database for chunks only once' do
           expect(Chunk).to receive(:where).at_most(:once).and_call_original
-          suggester.get_chunks_by_prior_tokens_and_current_word([1, 2], current_word)
+          suggester.get_chunks_by_prior_tokens_and_current_word([1, 2])
         end
 
         it 'returns the candidates' do
-          result = suggester.get_chunks_by_prior_tokens_and_current_word([1, 2], current_word)
+          result = suggester.get_chunks_by_prior_tokens_and_current_word([1, 2])
 
           expect(result.length).to eq(5)
         end
       end
 
       context 'when less than 5 candidates for the prior tokens and the current word' do
-        let(:current_word) { 'ha' }
         it 'gets chunks by prior tokens and current word recursively' do
+          allow(suggester)
+            .to receive(:current_word)
+            .and_return('ha')
           expect(suggester).to receive(:get_chunks_by_prior_tokens_and_current_word).at_least(:twice).and_call_original
 
-          suggester.get_chunks_by_prior_tokens_and_current_word([1, 2], current_word)
+          suggester.get_chunks_by_prior_tokens_and_current_word([1, 2])
         end
 
         it 'adds new chunks to the old as it recurses' do
           # first time through, it will match 'the heap'.
           # second time through, it will match ' heart' and ' hearts'
-          current_word = 'he'
-          chunks = suggester.get_chunks_by_prior_tokens_and_current_word([1, 2], current_word)
+          allow(suggester)
+            .to receive(:current_word)
+            .and_return('he')
+          chunks = suggester.get_chunks_by_prior_tokens_and_current_word([1, 2])
 
           expect(chunks.length).to eq(3)
         end
 
         it 'orders the new chunks after the old' do
-          current_word = 'he'
-          chunks = suggester.get_chunks_by_prior_tokens_and_current_word([1, 2], current_word)
+          allow(suggester)
+            .to receive(:current_word)
+            .and_return('he')
+
+          chunks = suggester.get_chunks_by_prior_tokens_and_current_word([1, 2])
 
           expect(chunks[0]).to eq(chunk_the_heap)   # count 1 (but more prior tokens)
           expect(chunks[1]).to eq(chunk__hearts)    # count 3
@@ -458,13 +432,20 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
         let(:current_word) { 'zoo' }
         it 'doesn\'t look in the database for chunks' do
           expect(Chunk).not_to receive(:where).and_call_original
+
+          chunks = suggester.get_chunks_by_prior_tokens_and_current_word([1, 2])
         end
 
         it 'returns no chunks' do
-          result = suggester.get_chunks_by_prior_tokens_and_current_word([1, 2], current_word)
+          result = suggester.get_chunks_by_prior_tokens_and_current_word([1, 2])
+
           expect(result.length).to eq(0)
         end
       end
+    end
+
+    describe '.candidate_tokens_for_current_word' do
+      #todo: write these tests
     end
 
     describe '.get_chunks_by_prior_tokens_only' do # rubocop:disable Metrics/BlockLength
@@ -537,18 +518,18 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
 
     describe 'get_token_id_candidates_from_chunks' do
       it 'returns an array of token ids' do
-        chunk_candidates = Chunk.where('size = 3')
+        candidate_chunks = Chunk.where('size = 3')
 
-        token_ids = suggester.get_token_id_candidates_from_chunks(chunk_candidates)
+        token_ids = suggester.get_token_id_candidates_from_chunks(candidate_chunks)
 
-        expect(token_ids.length).to eq(chunk_candidates.length)
+        expect(token_ids.length).to eq(candidate_chunks.length)
         expect(token_ids).to include(token_ham.id)
       end
 
-      it 'handles empty chunk_candidates' do
-        chunk_candidates = Chunk.none
+      it 'handles empty candidate_chunks' do
+        candidate_chunks = Chunk.none
 
-        token_ids = suggester.get_token_id_candidates_from_chunks(chunk_candidates)
+        token_ids = suggester.get_token_id_candidates_from_chunks(candidate_chunks)
 
         expect(token_ids.length).to eq(0)
       end
@@ -558,31 +539,31 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       let(:suggester) { Suggester.new(params) }
 
       let!(:longer_chunk) { create(:chunk, language: language, count: 2, token_ids: [1, 2, 10, 2], size: 4) }
-      let!(:chunk_candidates) do
+      let!(:candidate_chunks) do
         [longer_chunk, chunk_ending_in_hat, chunk_the_ham, chunk_the_has, chunk4, chunk5]
       end
 
       describe 'the candidates hash' do
         it 'contains a hash of the candidates' do
-          result = suggester.build_suggestions(chunk_candidates)
+          result = suggester.build_suggestions(candidate_chunks)
           expect(result).to include(:candidates)
         end
 
         it 'has the expected number of candidates' do
-          result = suggester.build_suggestions(chunk_candidates)[:candidates]
+          result = suggester.build_suggestions(candidate_chunks)[:candidates]
 
-          expect(result.length).to eq(chunk_candidates.length)
+          expect(result.length).to eq(candidate_chunks.length)
         end
 
         it 'is ordered by chunk size' do
-          result = suggester.build_suggestions(chunk_candidates)[:candidates]
+          result = suggester.build_suggestions(candidate_chunks)[:candidates]
 
           expect(result.first).to eq({ token_text: ' ', chunk_size: longer_chunk.size, count: 2 })
           expect(result.last).to eq({ token_text: 'hit', chunk_size: chunk5.size, count: 1 })
         end
 
         it 'contains probabilities', skip: 'Not sure if we need probabilities' do
-          result = suggester.build_suggestions(chunk_candidates)[:candidates]
+          result = suggester.build_suggestions(candidate_chunks)[:candidates]
           expect(result.first[:probability]).to eq(longer_chunk)
         end
       end
