@@ -7,9 +7,11 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
   let(:params) do
     { text: 'the ca', language_id: language.id.to_s, show_analysis: 'false' }
   end
+
+  subject(:suggester) {Suggester.new(params)}
+
   describe '#initialize' do
     it 'sets instance variables' do
-      suggester = Suggester.new(params)
       expect(suggester.instance_variable_get(:@text)).to eq(params[:text])
       expect(suggester.instance_variable_get(:@language_id)).to eq(params[:language_id].to_i)
       expect(suggester.instance_variable_get(:@show_analysis)).to eq(false)
@@ -51,7 +53,6 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     end
 
     context 'when text is not empty' do
-      let(:suggester) { Suggester.new(params) }
 
       before(:each) do
         allow(suggester)
@@ -197,7 +198,6 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     let(:prior_token_ids) { [1, 2, 3, 4] }
     let(:current_word) { 'ca' }
     let(:candidate_token_ids) { [] }
-    let(:suggester) { Suggester.new(params) }
     let(:max_suggestions) { Suggester::MAX_SUGGESTIONS }
 
     let(:five_chunk_candidates) do
@@ -351,8 +351,6 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       # the_moon
       create(:chunk, language: language, count: 5, token_ids: [1, 2, 17], size: 3)
     end
-
-    let(:suggester) { Suggester.new(params) }
 
     describe '.get_chunks_by_prior_tokens_and_current_word' do # rubocop:disable Metrics/BlockLength
       let(:prior_token_ids) { [1, 2] }
@@ -536,7 +534,6 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     end
 
     describe '.build_suggestions' do # rubocop:disable Metrics/BlockLength
-      let(:suggester) { Suggester.new(params) }
 
       let!(:longer_chunk) { create(:chunk, language: language, count: 2, token_ids: [1, 2, 10, 2], size: 4) }
       let!(:candidate_chunks) do

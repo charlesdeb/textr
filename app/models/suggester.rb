@@ -118,7 +118,7 @@ class Suggester # rubocop:disable Metrics/ClassLength
     # called
     candidate_tokens_for_current_word = Token.starting_with(current_word)
 
-    binding.irb
+    #binding.irb
 
     return Chunk.none if candidate_tokens_for_current_word.empty?
 
