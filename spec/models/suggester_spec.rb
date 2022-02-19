@@ -62,7 +62,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       end
 
       it 'finds prior tokens' do
-        expect(suggester).to receive(:prior_token_ids)
+        expect(suggester).to receive(:prior_token_ids_from_text)
 
         suggester.suggest
       end
@@ -109,7 +109,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  describe '.prior_token_ids' do # rubocop:disable Metrics/BlockLength
+  describe '.prior_token_ids_from_text' do # rubocop:disable Metrics/BlockLength
     let(:max_tokens_to_return) { ChunkAnalyser::CHUNK_SIZE_RANGE.max - 1 }
 
     before(:each) do
@@ -121,7 +121,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       Token.create!({ id: 5, text: 'hat' })
     end
 
-    it 'returns the prior tokens' do
+    it 'returns the prior tokens from the input text' do
       texts_and_expectations = [
         { text: 'the', expected_token_ids: [] },
         { text: 'the   ', expected_token_ids: [1, 2] }, # spaces at the end
@@ -133,10 +133,10 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
         params[:text] = text_and_expectation[:text]
         expected_token_ids = text_and_expectation[:expected_token_ids]
         suggester = Suggester.new(params)
-        prior_token_ids = suggester.prior_token_ids
-        expect(prior_token_ids)
-          .to eq(expected_token_ids),
-              "expected '#{expected_token_ids}', got '#{prior_token_ids}' from input of '#{params[:text]}'"
+        prior_token_ids_from_text = suggester.prior_token_ids_from_text
+        expect(prior_token_ids_from_text)
+          .to eq(prior_token_ids_from_text),
+              "expected '#{expected_token_ids}', got '#{prior_token_ids_from_text}' from input of '#{params[:text]}'"
       end
     end
 
@@ -144,10 +144,10 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       text = 'the cat in the hat in' # 11 tokens (6 words, 5 spaces)
       params[:text] = text
       suggester = Suggester.new(params)
-      prior_token_ids = suggester.prior_token_ids
-      expect(prior_token_ids.length)
+      prior_token_ids_from_text = suggester.prior_token_ids_from_text
+      expect(prior_token_ids_from_text.length)
         .to eq(max_tokens_to_return)
-      expect(prior_token_ids)
+      expect(prior_token_ids_from_text)
         .to eq([2, 4, 2, 1, 2, 5, 2]) # ' in the hat '
     end
 
@@ -155,10 +155,10 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       text = 'the cat in the hat' # 8 tokens plus the final word "hat"
       params[:text] = text
       suggester = Suggester.new(params)
-      prior_token_ids = suggester.prior_token_ids
-      expect(prior_token_ids.length)
+      prior_token_ids_from_text = suggester.prior_token_ids_from_text
+      expect(prior_token_ids_from_text.length)
         .to eq(max_tokens_to_return)
-      expect(prior_token_ids)
+      expect(prior_token_ids_from_text)
         .to eq([2, 3, 2, 4, 2, 1, 2]) # ' cat in the '
     end
 
@@ -166,17 +166,17 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       text = 'the c' # 8 tokens plus the final word "hat"
       params[:text] = text
       suggester = Suggester.new(params)
-      prior_token_ids = suggester.prior_token_ids
-      expect(prior_token_ids.length)
+      prior_token_ids_from_text = suggester.prior_token_ids_from_text
+      expect(prior_token_ids_from_text.length)
         .to eq(2)
-      expect(prior_token_ids)
+      expect(prior_token_ids_from_text)
         .to eq([1, 2]) # 'the '
     end
 
     it 'doesn\'t add the current word to the table of tokens' do
       params[:text] = 'the rain'
       suggester = Suggester.new(params)
-      suggester.prior_token_ids
+      suggester.prior_token_ids_from_text
 
       expect(Token.all.count).to eq(5)
 
@@ -187,7 +187,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     it 'returns empty array if there are no prior token ids' do
       params[:text] = 'the'
       suggester = Suggester.new(params)
-      result = suggester.prior_token_ids
+      result = suggester.prior_token_ids_from_text
 
       expect(result).to be_empty
     end

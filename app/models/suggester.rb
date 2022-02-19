@@ -21,9 +21,9 @@ class Suggester # rubocop:disable Metrics/ClassLength
   def suggest
     return { candidates: [] } if @text.strip.empty?
 
-    # while we could memoize prior_token_ids to save passing it round as
+    # while we could memoize prior_token_ids_from_text to save passing it round as
     # an argument, the code is easier to understand like this
-    candidate_chunks = get_candidate_chunks(prior_token_ids)
+    candidate_chunks = get_candidate_chunks(prior_token_ids_from_text)
 
     build_suggestions(candidate_chunks)
   end
@@ -48,7 +48,7 @@ class Suggester # rubocop:disable Metrics/ClassLength
   #
   # Creates tokens if needed for any new words. If the user is entering spaces
   # then this counts as the space token
-  def prior_token_ids
+  def prior_token_ids_from_text
     max_tokens_to_return = ChunkAnalyser::CHUNK_SIZE_RANGE.max - 1
 
     # get the tokens as pieces of text 
@@ -71,7 +71,7 @@ class Suggester # rubocop:disable Metrics/ClassLength
 
   # Returns best chunk candidates that match current user input
   #
-  # @param prior_token_ids [Array<Integer>] array of token IDs that have been
+  # @param prior_token_ids_from_text [Array<Integer>] array of token IDs that have been
   #                                         entered so far
   # @param current_word [String] text of the word the user is currently typing
   # @param candidate_token_ids [Array<Int>] candidate tokens that have already been found.
@@ -80,15 +80,15 @@ class Suggester # rubocop:disable Metrics/ClassLength
   #
   # @return [Array<Chunk>] I think just an array of Chunks that are candidates - not an ActiveRelation
   #
-  # Get the candidate chunks for the current prior_token_ids, current_word -
+  # Get the candidate chunks for the current prior_token_ids_from_text, current_word -
   # and if we can't get MAX_SUGGESTIONS of candidates, then lose the current_word
   # and keep looking
-  def get_candidate_chunks(prior_token_ids)
+  def get_candidate_chunks(prior_token_ids_from_text)
     candidate_token_ids = []
 
     # Get candidate chunks that match the prior tokens with the current word
     candidate_chunks = get_chunks_by_prior_tokens_and_current_word(
-      prior_token_ids, candidate_token_ids
+      prior_token_ids_from_text, candidate_token_ids
     )
 
     # get the token ids from those chunks
@@ -98,7 +98,7 @@ class Suggester # rubocop:disable Metrics/ClassLength
     return candidate_chunks if candidate_token_ids.size == MAX_SUGGESTIONS
 
     # get more chunks but without using the current_word
-    candidate_chunks + get_chunks_by_prior_tokens_only(prior_token_ids,
+    candidate_chunks + get_chunks_by_prior_tokens_only(prior_token_ids_from_text,
                                                        candidate_token_ids)
   end
 
