@@ -17,7 +17,7 @@ class Suggester # rubocop:disable Metrics/ClassLength
   # Returns the most likely candidate tokens to come after the curent
   # text, optionally with analysis
   #
-  # @return [Hash] See build_suggestions for details
+  # @return [Hash] See format for details
   def suggest
     return { candidates: [] } if @text.strip.empty?
 
@@ -25,7 +25,7 @@ class Suggester # rubocop:disable Metrics/ClassLength
     # an argument, the code is easier to understand like this
     candidate_chunks = get_candidate_chunks(prior_token_ids_from_text)
 
-    build_suggestions(candidate_chunks)
+    format(candidate_chunks)
   end
 
   # Finds the most recently typed word in @text or nil
@@ -221,7 +221,7 @@ class Suggester # rubocop:disable Metrics/ClassLength
   #           { token_text: 'this', probability: 0.05 }
   #         ] }
   #     ] }
-  def build_suggestions(candidate_chunks)
+  def format(candidate_chunks)
     candidates_array = candidate_chunks.map do |chunk|
       token_id = chunk.token_ids[chunk.size - 1]
       text = Token.find(token_id).text

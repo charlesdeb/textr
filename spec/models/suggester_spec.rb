@@ -58,7 +58,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
           .to receive(:get_candidate_chunks)
           .and_return('some candidates')
         allow(suggester)
-          .to receive(:build_suggestions)
+          .to receive(:format)
       end
 
       it 'finds prior tokens' do
@@ -74,7 +74,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       end
 
       it 'returns suggestions' do
-        allow(suggester).to receive(:build_suggestions).and_return('suggestions')
+        allow(suggester).to receive(:format).and_return('suggestions')
 
         suggestions = suggester.suggest
 
@@ -532,7 +532,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       end
     end
 
-    describe '.build_suggestions' do
+    describe '.format' do
       let!(:longer_chunk) { create(:chunk, language: language, count: 2, token_ids: [1, 2, 10, 2], size: 4) }
       let!(:candidate_chunks) do
         [longer_chunk, chunk_ending_in_hat, chunk_the_ham, chunk_the_has, chunk4, chunk5]
@@ -540,25 +540,25 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
 
       describe 'the candidates hash' do
         it 'contains a hash of the candidates' do
-          result = suggester.build_suggestions(candidate_chunks)
+          result = suggester.format(candidate_chunks)
           expect(result).to include(:candidates)
         end
 
         it 'has the expected number of candidates' do
-          result = suggester.build_suggestions(candidate_chunks)[:candidates]
+          result = suggester.format(candidate_chunks)[:candidates]
 
           expect(result.length).to eq(candidate_chunks.length)
         end
 
         it 'is ordered by chunk size' do
-          result = suggester.build_suggestions(candidate_chunks)[:candidates]
+          result = suggester.format(candidate_chunks)[:candidates]
 
           expect(result.first).to eq({ token_text: ' ', chunk_size: longer_chunk.size, count: 2 })
           expect(result.last).to eq({ token_text: 'hit', chunk_size: chunk5.size, count: 1 })
         end
 
         it 'contains probabilities', skip: 'Not sure if we need probabilities' do
-          result = suggester.build_suggestions(candidate_chunks)[:candidates]
+          result = suggester.format(candidate_chunks)[:candidates]
           expect(result.first[:probability]).to eq(longer_chunk)
         end
       end
