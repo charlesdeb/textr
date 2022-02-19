@@ -8,7 +8,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     { text: 'the ca', language_id: language.id.to_s, show_analysis: 'false' }
   end
 
-  subject(:suggester) {Suggester.new(params)}
+  subject(:suggester) { Suggester.new(params) }
 
   describe '#initialize' do
     it 'sets instance variables' do
@@ -53,7 +53,6 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     end
 
     context 'when text is not empty' do
-
       before(:each) do
         allow(suggester)
           .to receive(:get_candidate_chunks)
@@ -431,7 +430,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
         it 'doesn\'t look in the database for chunks' do
           expect(Chunk).not_to receive(:where).and_call_original
 
-          chunks = suggester.get_chunks_by_prior_tokens_and_current_word([1, 2])
+          suggester.get_chunks_by_prior_tokens_and_current_word([1, 2])
         end
 
         it 'returns no chunks' do
@@ -443,7 +442,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     end
 
     describe '.candidate_tokens_for_current_word' do
-      #todo: write these tests
+      # TODO: write these tests
     end
 
     describe '.get_chunks_by_prior_tokens_only' do # rubocop:disable Metrics/BlockLength
@@ -533,8 +532,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
       end
     end
 
-    describe '.build_suggestions' do # rubocop:disable Metrics/BlockLength
-
+    describe '.build_suggestions' do
       let!(:longer_chunk) { create(:chunk, language: language, count: 2, token_ids: [1, 2, 10, 2], size: 4) }
       let!(:candidate_chunks) do
         [longer_chunk, chunk_ending_in_hat, chunk_the_ham, chunk_the_has, chunk4, chunk5]
