@@ -78,19 +78,19 @@ class Suggester
     candidate_token_ids = []
 
     # Get candidate chunks that match the prior tokens with the current word
-    candidate_chunks = get_chunks_by_prior_tokens_and_current_word(
+    candidate_chunks = chunks_by_prior_tokens_and_current_word(
       prior_token_ids_from_text, candidate_token_ids
     )
 
     # get the token ids from those chunks
-    candidate_token_ids += get_token_id_candidates_from_chunks(candidate_chunks.to_a)
+    candidate_token_ids += extract_token_ids_from_chunks(candidate_chunks.to_a)
 
-    # If we got our MAX_SUGGESTIONS or we have looked at all the prior tokens, then we're done
+    # If we got our MAX_SUGGESTIONS then we're done
     return candidate_chunks if candidate_token_ids.size == MAX_SUGGESTIONS
 
-    # get more chunks but without using the current_word
-    candidate_chunks + get_chunks_by_prior_tokens_only(prior_token_ids_from_text,
-                                                       candidate_token_ids)
+    # O/wise get more chunks but without using the current_word
+    candidate_chunks + chunks_by_prior_tokens_only(prior_token_ids_from_text,
+                                                   candidate_token_ids)
   end
 
   # Returns all the possible tokens that start with the current_word
@@ -110,7 +110,7 @@ class Suggester
   #
   # Returns empty array if the current word doesn't match any known tokens
   # TODO: refactor this
-  def get_chunks_by_prior_tokens_and_current_word(prior_token_ids, candidate_token_ids = []) # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
+  def chunks_by_prior_tokens_and_current_word(prior_token_ids, candidate_token_ids = []) # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
     return Chunk.none if candidate_tokens_for_current_word.empty?
 
     candidate_token_ids_for_current_word = candidate_tokens_for_current_word.to_a.map(&:id)
@@ -128,13 +128,13 @@ class Suggester
                             .order(count: :desc).to_a
 
     # Add new candidate tokens to the list
-    candidate_token_ids += get_token_id_candidates_from_chunks(candidate_chunks)
+    candidate_token_ids += extract_token_ids_from_chunks(candidate_chunks)
 
     # If we got our MAX_SUGGESTIONS or we're out of prior_tokens, then we're done
     return candidate_chunks if candidate_token_ids.size == MAX_SUGGESTIONS || prior_token_ids.size.zero?
 
-    candidate_chunks + get_chunks_by_prior_tokens_and_current_word(prior_token_ids[1..],
-                                                                   candidate_token_ids)
+    candidate_chunks + chunks_by_prior_tokens_and_current_word(prior_token_ids[1..],
+                                                               candidate_token_ids)
   end
 
   # Returns chunks candidates that match current user input
@@ -147,7 +147,7 @@ class Suggester
   #
   # Returns empty array if no prior tokens match any chunks (or if there are
   # no prior tokens)
-  def get_chunks_by_prior_tokens_only(prior_token_ids, candidate_token_ids = []) # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
+  def chunks_by_prior_tokens_only(prior_token_ids, candidate_token_ids = []) # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
     return Chunk.none if prior_token_ids.empty?
 
     token_ids_where = prior_token_ids.map.with_index do |token_id, index|
@@ -163,21 +163,21 @@ class Suggester
                             .limit(MAX_SUGGESTIONS - candidate_token_ids.size)
                             .order(count: :desc).to_a
     # Add new candidate tokens to the list
-    candidate_token_ids += get_token_id_candidates_from_chunks(candidate_chunks)
+    candidate_token_ids += extract_token_ids_from_chunks(candidate_chunks)
 
     # If we got our MAX_SUGGESTIONS then we're done
     return candidate_chunks if candidate_token_ids.size == MAX_SUGGESTIONS
 
     # Shorten the list of prior tokens and look again
-    candidate_chunks + get_chunks_by_prior_tokens_only(prior_token_ids[1..],
-                                                       candidate_token_ids)
+    candidate_chunks + chunks_by_prior_tokens_only(prior_token_ids[1..],
+                                                   candidate_token_ids)
   end
 
   # Returns an array of final token IDs from each of the candidate_chunks
   # @param candidate_chunks [Array<Chunk>] Chunk candidates
   #
   # @return [Array<Integer>]
-  def get_token_id_candidates_from_chunks(candidate_chunks)
+  def extract_token_ids_from_chunks(candidate_chunks)
     candidate_chunks.map { |chunk| chunk.token_ids[chunk.size - 1] }
   end
 
