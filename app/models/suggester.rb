@@ -30,11 +30,9 @@ class Suggester
   #
   # @return [String] nil if the user has just typed a space
   def current_word
-    @current_word ||= begin
-      result = Token.split_into_token_texts(@text, :by_word)[-1]
+    result = Token.split_into_token_texts(@text, :by_word)[-1]
 
-      (result == ' ' ? nil : result)
-    end
+    (result == ' ' ? nil : result)
   end
 
   # add the .punctuation? and .whitespace? methods
@@ -73,9 +71,9 @@ class Suggester
   #
   # @return [Array<Chunk>] I think just an array of Chunks that are candidates - not an ActiveRelation
   #
-  # Get the candidate chunks for the current prior_token_ids_from_text, current_word -
-  # and if we can't get MAX_SUGGESTIONS of candidates, then lose the current_word
-  # and keep looking
+  # Get the candidate chunks for the current prior_token_ids_from_text and
+  # current_word - and if we can't get MAX_SUGGESTIONS of candidates, then
+  # lose the current_word and keep looking
   def candidate_chunks
     candidate_token_ids = []
 
@@ -106,8 +104,8 @@ class Suggester
   #
   # @param prior_token_ids [Array<Integer>] array of token IDs that have been
   #                                         entered so far
-  # @param current_word [String]            text of the word the user is currently typing
-  # @param candidate_token_ids [Array<Int>] candidate token IDs that have already been found
+  # @param candidate_token_ids [Array<Int>] candidate token IDs that have
+  #                                         already been found
   # @return [Array<Chunk>]                  chunks that match the search parameters
   #
   # Returns empty array if the current word doesn't match any known tokens
