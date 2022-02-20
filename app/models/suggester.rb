@@ -3,7 +3,7 @@
 # require 'app/refinements/string.rb'
 require 'string'
 
-# Used for suggesting words based to a user
+# Used for suggesting words based on current input text to a user
 class Suggester
   # Maximum number of suggestions to show the user
   MAX_SUGGESTIONS = 5
