@@ -4,7 +4,7 @@
 require 'string'
 
 # Used for suggesting words based to a user
-class Suggester # rubocop:disable Metrics/ClassLength
+class Suggester
   # Maximum number of suggestions to show the user
   MAX_SUGGESTIONS = 5
 
@@ -23,8 +23,7 @@ class Suggester # rubocop:disable Metrics/ClassLength
 
     # while we could memoize prior_token_ids_from_text to save passing it round as
     # an argument, the code is easier to understand like this
-    candidate_chunks = get_candidate_chunks(prior_token_ids_from_text)
-
+    candidate_chunks = get_candidate_chunks
     format(candidate_chunks)
   end
 
@@ -49,41 +48,36 @@ class Suggester # rubocop:disable Metrics/ClassLength
   # Creates tokens if needed for any new words. If the user is entering spaces
   # then this counts as the space token
   def prior_token_ids_from_text
-    max_tokens_to_return = ChunkAnalyser::CHUNK_SIZE_RANGE.max - 1
+    @prior_token_ids_from_text ||= begin
+      max_tokens_to_return = ChunkAnalyser::CHUNK_SIZE_RANGE.max - 1
 
-    # get the tokens as pieces of text 
-    prior_token_texts = Token.split_into_token_texts(@text)
+      # get the tokens as pieces of text
+      prior_token_texts = Token.split_into_token_texts(@text)
 
-    # remove last piece of text, unless it's a space or punctuation
-    last_token_text = prior_token_texts[-1]
-    prior_token_texts = prior_token_texts[0..-2] unless last_token_text.punctuation? || last_token_text.whitespace?
+      # remove last piece of text, unless it's a space or punctuation
+      last_token_text = prior_token_texts[-1]
+      prior_token_texts = prior_token_texts[0..-2] unless last_token_text.punctuation? || last_token_text.whitespace?
 
-    # This adds any new tokens just found to the database - including duff tokens
-    # with typos - since our algorithm only works with IDs
-    # TODO: we should remove any tokens that weren't actually in the finally
-    # submitted text from the database.
-    prior_token_texts = prior_token_texts.join
-    token_ids = Token.id_ise(prior_token_texts, :by_word)
+      # This adds any new tokens just found to the database - including duff tokens
+      # with typos - since our algorithm only works with IDs
+      # TODO: we should remove any tokens that weren't actually in the finally
+      # submitted text from the database.
+      prior_token_texts = prior_token_texts.join
+      token_ids = Token.id_ise(prior_token_texts, :by_word)
 
-    # return the most recent x of those tokens
-    token_ids[(token_ids.length > max_tokens_to_return ? -max_tokens_to_return : -token_ids.length )..]
+      # return the most recent x of those tokens
+      token_ids[(token_ids.length > max_tokens_to_return ? -max_tokens_to_return : -token_ids.length)..]
+    end
   end
 
   # Returns best chunk candidates that match current user input
-  #
-  # @param prior_token_ids_from_text [Array<Integer>] array of token IDs that have been
-  #                                         entered so far
-  # @param current_word [String] text of the word the user is currently typing
-  # @param candidate_token_ids [Array<Int>] candidate tokens that have already been found.
-  #                                      It is empty for the first call, but should get
-  #                                      longer with recursive calls
   #
   # @return [Array<Chunk>] I think just an array of Chunks that are candidates - not an ActiveRelation
   #
   # Get the candidate chunks for the current prior_token_ids_from_text, current_word -
   # and if we can't get MAX_SUGGESTIONS of candidates, then lose the current_word
   # and keep looking
-  def get_candidate_chunks(prior_token_ids_from_text)
+  def get_candidate_chunks
     candidate_token_ids = []
 
     # Get candidate chunks that match the prior tokens with the current word
@@ -118,7 +112,7 @@ class Suggester # rubocop:disable Metrics/ClassLength
     # called
     candidate_tokens_for_current_word = Token.starting_with(current_word)
 
-    #binding.irb
+    # binding.irb
 
     return Chunk.none if candidate_tokens_for_current_word.empty?
 
