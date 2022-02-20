@@ -21,9 +21,6 @@ class Suggester
   def suggest
     return { candidates: [] } if @text.strip.empty?
 
-    # while we could memoize prior_token_ids_from_text to save passing it round as
-    # an argument, the code is easier to understand like this
-    candidate_chunks = get_candidate_chunks
     format(candidate_chunks)
   end
 
@@ -77,7 +74,7 @@ class Suggester
   # Get the candidate chunks for the current prior_token_ids_from_text, current_word -
   # and if we can't get MAX_SUGGESTIONS of candidates, then lose the current_word
   # and keep looking
-  def get_candidate_chunks
+  def candidate_chunks
     candidate_token_ids = []
 
     # Get candidate chunks that match the prior tokens with the current word

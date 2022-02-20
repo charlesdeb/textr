@@ -55,14 +55,14 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     context 'when text is not empty' do
       before(:each) do
         allow(suggester)
-          .to receive(:get_candidate_chunks)
+          .to receive(:candidate_chunks)
           .and_return('some candidates')
         allow(suggester)
           .to receive(:format)
       end
 
       it 'gets chunk candidates' do
-        expect(suggester).to receive(:get_candidate_chunks)
+        expect(suggester).to receive(:candidate_chunks)
 
         suggester.suggest
       end
@@ -187,7 +187,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  describe '.get_candidate_chunks' do # rubocop:disable Metrics/BlockLength
+  describe '.candidate_chunks' do # rubocop:disable Metrics/BlockLength
     let(:prior_token_ids_from_text) { [1, 2, 3, 4] }
     let(:current_word) { 'ca' }
     let(:candidate_token_ids) { [] }
@@ -240,7 +240,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
           .with(prior_token_ids_from_text, candidate_token_ids)
           .once
 
-        suggester.get_candidate_chunks
+        suggester.candidate_chunks
       end
 
       it "doesn't get chunks by prior tokens only" do
@@ -248,7 +248,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
           .not_to receive(:get_chunks_by_prior_tokens_only)
           .with(prior_token_ids_from_text, candidate_token_ids)
 
-        suggester.get_candidate_chunks
+        suggester.candidate_chunks
       end
     end
 
@@ -272,7 +272,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
           .to receive(:get_chunks_by_prior_tokens_and_current_word)
           .with(prior_token_ids_from_text, candidate_token_ids)
 
-        suggester.get_candidate_chunks
+        suggester.candidate_chunks
       end
 
       it 'also gets chunks by prior tokens only' do
@@ -280,7 +280,7 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
           .to receive(:get_chunks_by_prior_tokens_only)
           .with(prior_token_ids_from_text, Array.new(four_chunk_candidates.count, 'some token'))
 
-        suggester.get_candidate_chunks
+        suggester.candidate_chunks
       end
     end
   end
