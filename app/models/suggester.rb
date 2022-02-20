@@ -24,6 +24,8 @@ class Suggester
     format(candidate_chunks)
   end
 
+  private
+
   # Finds the most recently typed word in @text or nil
   #
   # @return [String] nil if the user has just typed a space
