@@ -2,6 +2,8 @@
 
 For more information about this project check <https://hlml.blog/2021/05/30/actual-text-prediction/> and the follow-up post.
 
+![Screen shot](https://i0.wp.com/hlml.blog/wp-content/uploads/2021/08/image-1.png?resize=768%2C408&ssl=1 "Textr screen shot")
+
 It's a proof of concept for text prediction without using neural nets in Ruby on Rails.
 
 It is not really intended that folks try and download and build this project themselves - more a hobby project for my own interest and blog site. Maybe I'll get round to building a [Heroku Button](https://www.heroku.com/elements/buttons) for a one-click install...
