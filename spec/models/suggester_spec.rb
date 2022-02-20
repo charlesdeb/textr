@@ -441,7 +441,31 @@ RSpec.describe Suggester, type: :model do # rubocop:disable Metrics/BlockLength
     end
 
     describe '.candidate_tokens_for_current_word' do
-      # TODO: write these tests
+      let(:current_word) { 'ha' }
+      let(:candidate_token_ids) { [] }
+
+      before(:each) do
+        allow(suggester)
+          .to receive(:current_word)
+          .and_return(current_word)
+      end
+
+      it 'delegates this to Token.starting_with' do
+        expect(Token).to receive(:starting_with).with(current_word)
+
+        suggester.send(:candidate_tokens_for_current_word)
+      end
+
+      it 'memoizes the answer' do
+        expect(Token)
+          .to receive(:starting_with)
+          .with(current_word)
+          .at_most(:once)
+          .and_return([1, 2, 3])
+
+        suggester.send(:candidate_tokens_for_current_word)
+        suggester.send(:candidate_tokens_for_current_word)
+      end
     end
 
     describe '.get_chunks_by_prior_tokens_only' do # rubocop:disable Metrics/BlockLength

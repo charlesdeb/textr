@@ -95,6 +95,13 @@ class Suggester
                                                        candidate_token_ids)
   end
 
+  # Returns all the possible tokens that start with the current_word
+  #
+  # @return [Array<Token>]     Tokens
+  def candidate_tokens_for_current_word
+    @candidate_tokens_for_current_word ||= Token.starting_with(current_word)
+  end
+
   # Returns chunks candidates that match current user input ordered by occurrence
   #
   # @param prior_token_ids [Array<Integer>] array of token IDs that have been
@@ -106,13 +113,6 @@ class Suggester
   # Returns empty array if the current word doesn't match any known tokens
   # TODO: refactor this
   def get_chunks_by_prior_tokens_and_current_word(prior_token_ids, candidate_token_ids = []) # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
-    # find all the possible tokens that start with the current_word
-    # TODO: we only really need to calculate this once, not each time this is
-    # called
-    candidate_tokens_for_current_word = Token.starting_with(current_word)
-
-    # binding.irb
-
     return Chunk.none if candidate_tokens_for_current_word.empty?
 
     candidate_token_ids_for_current_word = candidate_tokens_for_current_word.to_a.map(&:id)
@@ -120,9 +120,8 @@ class Suggester
     token_ids_where = candidate_token_ids_for_current_word.map do |token_id|
       "token_ids = ARRAY#{prior_token_ids + [token_id]}"
     end
-    token_ids_where = token_ids_where.join(' OR ')
 
-    token_ids_where = " AND (#{token_ids_where} )" unless token_ids_where.blank?
+    token_ids_where = " AND (#{token_ids_where.join(' OR ')} )" unless token_ids_where.blank?
 
     candidate_chunks = Chunk.where("language_id = :language_id #{token_ids_where}",
                                    language_id: @language_id)
@@ -168,9 +167,10 @@ class Suggester
     # Add new candidate tokens to the list
     candidate_token_ids += get_token_id_candidates_from_chunks(candidate_chunks)
 
-    # If we got our MAX_SUGGESTIONS or we're out of prior_tokens, then we're done
-    return candidate_chunks if candidate_token_ids.size == MAX_SUGGESTIONS || prior_token_ids.size.zero?
+    # If we got our MAX_SUGGESTIONS then we're done
+    return candidate_chunks if candidate_token_ids.size == MAX_SUGGESTIONS
 
+    # Shorten the list of prior tokens and look again
     candidate_chunks + get_chunks_by_prior_tokens_only(prior_token_ids[1..],
                                                        candidate_token_ids)
   end
